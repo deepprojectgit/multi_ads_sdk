@@ -4,7 +4,7 @@ import '../core/base_ad_provider.dart';
 import '../data/platform_ad_service.dart';
 
 /// Facebook Ads provider implementation
-/// 
+///
 /// This class implements the BaseAdProvider interface for Facebook Audience Network.
 /// It handles initialization, loading, and showing of Facebook ads with
 /// single-load and single-show pattern.
@@ -14,7 +14,7 @@ class FacebookAdsProvider implements BaseAdProvider {
   @override
   Future<void> init() async {
     if (_initialized) return;
-    
+
     await PlatformAdService.initProvider(AdProviderType.facebook);
     _initialized = true;
   }
@@ -22,20 +22,23 @@ class FacebookAdsProvider implements BaseAdProvider {
   @override
   Future<void> load(AdType type, {required String adUnitId}) async {
     if (!_initialized) {
-      throw Exception('Facebook Ads provider not initialized. Call init() first.');
+      throw Exception(
+          'Facebook Ads provider not initialized. Call init() first.');
     }
-    
+
     await PlatformAdService.loadAd(AdProviderType.facebook, type, adUnitId);
   }
 
   @override
   Future<void> show(AdType type, {Function()? onReward}) async {
     if (!_initialized) {
-      throw Exception('Facebook Ads provider not initialized. Call init() first.');
+      throw Exception(
+          'Facebook Ads provider not initialized. Call init() first.');
     }
-    
+
     // Set up reward callback if provided
-    if (onReward != null && (type == AdType.rewarded || type == AdType.rewardedInterstitial)) {
+    if (onReward != null &&
+        (type == AdType.rewarded || type == AdType.rewardedInterstitial)) {
       PlatformAdService.setupEventListeners(
         onRewarded: (adType) {
           if (adType == type) {
@@ -44,7 +47,7 @@ class FacebookAdsProvider implements BaseAdProvider {
         },
       );
     }
-    
+
     await PlatformAdService.showAd(AdProviderType.facebook, type);
   }
 }

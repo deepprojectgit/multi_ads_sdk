@@ -3,18 +3,18 @@ import '../core/ad_provider_type.dart';
 import '../core/ad_type.dart';
 
 /// Platform service for communicating with native code via MethodChannel
-/// 
+///
 /// This service handles all communication between Dart and native platforms
 /// (Android/iOS) for ad operations.
 class PlatformAdService {
   /// MethodChannel name for communication
   static const String _channelName = 'multi_ads_sdk';
-  
+
   /// MethodChannel instance
   static const MethodChannel _channel = MethodChannel(_channelName);
 
   /// Initialize the ad provider on the native platform
-  /// 
+  ///
   /// [providerType] - The ad provider to initialize
   static Future<void> initProvider(AdProviderType providerType) async {
     try {
@@ -27,7 +27,7 @@ class PlatformAdService {
   }
 
   /// Load an ad on the native platform
-  /// 
+  ///
   /// [providerType] - The ad provider to use
   /// [adType] - The type of ad to load
   /// [adUnitId] - The ad unit ID to use
@@ -48,7 +48,7 @@ class PlatformAdService {
   }
 
   /// Show an ad on the native platform
-  /// 
+  ///
   /// [providerType] - The ad provider to use
   /// [adType] - The type of ad to show
   static Future<void> showAd(
@@ -66,7 +66,7 @@ class PlatformAdService {
   }
 
   /// Set up event listeners for ad callbacks
-  /// 
+  ///
   /// [onAdLoaded] - Called when an ad is successfully loaded
   /// [onAdFailedToLoad] - Called when an ad fails to load
   /// [onAdShown] - Called when an ad is shown

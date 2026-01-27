@@ -1,5 +1,5 @@
 /// Multi Ads SDK - Main export file
-/// 
+///
 /// A comprehensive Flutter SDK for multi-provider ads (AdMob, AdX, Facebook)
 /// with single-load and single-show pattern.
 library multi_ads_sdk;

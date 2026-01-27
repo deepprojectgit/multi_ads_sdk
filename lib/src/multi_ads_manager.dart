@@ -1,19 +1,15 @@
-import 'core/ad_provider_type.dart';
-import 'core/ad_type.dart';
-import 'platform/admob_provider.dart';
-import 'platform/adx_provider.dart';
-import 'platform/facebook_ads_provider.dart';
-import 'data/platform_ad_service.dart';
+import 'package:flutter/foundation.dart';
+import 'package:multi_ads_sdk/multi_ads_sdk.dart';
 
 /// Unified Ads Manager for multi-provider ad management
-/// 
+///
 /// This class provides a single entry point for managing ads from different
 /// providers (AdMob, AdX, Facebook). It enforces the single-load and
 /// single-show pattern where:
 /// - Only one instance of each ad type is kept in memory
 /// - After showing, the instance is destroyed
 /// - SDK can automatically reload after show if configured
-/// 
+///
 /// Usage:
 /// ```dart
 /// await MultiAdsManager.init(AdProviderType.admob);
@@ -25,9 +21,9 @@ class MultiAdsManager {
   static AdProviderType? _currentProviderType;
 
   /// Initialize the SDK with the specified provider
-  /// 
+  ///
   /// [type] - The ad provider type to initialize
-  /// 
+  ///
   /// Example:
   /// ```dart
   /// await MultiAdsManager.init(AdProviderType.admob);
@@ -44,19 +40,19 @@ class MultiAdsManager {
         _currentProvider = FacebookAdsProvider();
         break;
     }
-    
+
     await _currentProvider?.init();
     _currentProviderType = type;
-    
+
     // Set up event listeners for callbacks
     _setupEventListeners();
   }
 
   /// Load an ad of the specified type
-  /// 
+  ///
   /// [type] - The type of ad to load
   /// [adUnitId] - The ad unit ID to use (required)
-  /// 
+  ///
   /// Example:
   /// ```dart
   /// await MultiAdsManager.load(AdType.interstitial, adUnitId: 'ca-app-pub-xxx/xxx');
@@ -67,10 +63,10 @@ class MultiAdsManager {
   }
 
   /// Show an ad of the specified type
-  /// 
+  ///
   /// [type] - The type of ad to show
   /// [onReward] - Optional callback for rewarded ads when user earns reward
-  /// 
+  ///
   /// Example:
   /// ```dart
   /// await MultiAdsManager.show(AdType.rewarded, onReward: () {
@@ -83,100 +79,101 @@ class MultiAdsManager {
   }
 
   /// Load an interstitial ad
-  /// 
+  ///
   /// [adUnitId] - The ad unit ID to use (required)
-  /// 
+  ///
   /// Shortcut method for loading interstitial ads.
   static Future<void> loadInterstitial({required String adUnitId}) async {
     await load(AdType.interstitial, adUnitId: adUnitId);
   }
 
   /// Show an interstitial ad
-  /// 
+  ///
   /// Shortcut method for showing interstitial ads.
   static Future<void> showInterstitial() async {
     await show(AdType.interstitial);
   }
 
   /// Load a rewarded ad
-  /// 
+  ///
   /// [adUnitId] - The ad unit ID to use (required)
-  /// 
+  ///
   /// Shortcut method for loading rewarded ads.
   static Future<void> loadRewarded({required String adUnitId}) async {
     await load(AdType.rewarded, adUnitId: adUnitId);
   }
 
   /// Show a rewarded ad
-  /// 
+  ///
   /// [onReward] - Callback when user earns reward
-  /// 
+  ///
   /// Shortcut method for showing rewarded ads.
   static Future<void> showRewarded({Function()? onReward}) async {
     await show(AdType.rewarded, onReward: onReward);
   }
 
   /// Load an app open ad
-  /// 
+  ///
   /// [adUnitId] - The ad unit ID to use (required)
-  /// 
+  ///
   /// Shortcut method for loading app open ads.
   static Future<void> loadAppOpen({required String adUnitId}) async {
     await load(AdType.appOpen, adUnitId: adUnitId);
   }
 
   /// Show an app open ad
-  /// 
+  ///
   /// Shortcut method for showing app open ads.
   static Future<void> showAppOpen() async {
     await show(AdType.appOpen);
   }
 
   /// Load a banner ad
-  /// 
+  ///
   /// [adUnitId] - The ad unit ID to use (required)
-  /// 
+  ///
   /// Shortcut method for loading banner ads.
   static Future<void> loadBanner({required String adUnitId}) async {
     await load(AdType.banner, adUnitId: adUnitId);
   }
 
   /// Show a banner ad
-  /// 
+  ///
   /// Shortcut method for showing banner ads.
   static Future<void> showBanner() async {
     await show(AdType.banner);
   }
 
   /// Load a rewarded interstitial ad
-  /// 
+  ///
   /// [adUnitId] - The ad unit ID to use (required)
-  /// 
+  ///
   /// Shortcut method for loading rewarded interstitial ads.
-  static Future<void> loadRewardedInterstitial({required String adUnitId}) async {
+  static Future<void> loadRewardedInterstitial(
+      {required String adUnitId}) async {
     await load(AdType.rewardedInterstitial, adUnitId: adUnitId);
   }
 
   /// Show a rewarded interstitial ad
-  /// 
+  ///
   /// [onReward] - Callback when user earns reward
-  /// 
+  ///
   /// Shortcut method for showing rewarded interstitial ads.
   static Future<void> showRewardedInterstitial({Function()? onReward}) async {
     await show(AdType.rewardedInterstitial, onReward: onReward);
   }
 
   /// Load a native ad
-  /// 
+  ///
   /// [adUnitId] - The ad unit ID to use (required)
-  /// 
+  ///
   /// Shortcut method for loading native ads.
   static Future<void> loadNative({required String adUnitId}) async {
     await load(AdType.native, adUnitId: adUnitId);
   }
 
   /// Show a native ad
-  /// 
+  ///
   /// Shortcut method for showing native ads.
   static Future<void> showNative() async {
     await show(AdType.native);
@@ -195,22 +192,35 @@ class MultiAdsManager {
   static void _setupEventListeners() {
     PlatformAdService.setupEventListeners(
       onAdLoaded: (adType) {
-        print('[MultiAdsManager] Ad loaded: ${adType.name}');
+        if (kDebugMode) {
+          print('[MultiAdsManager] Ad loaded: ${adType.name}');
+        }
       },
       onAdFailedToLoad: (adType, error) {
-        print('[MultiAdsManager] Ad failed to load: ${adType.name}, Error: $error');
+        if (kDebugMode) {
+          print(
+              '[MultiAdsManager] Ad failed to load: ${adType.name}, Error: $error');
+        }
       },
       onAdShown: (adType) {
-        print('[MultiAdsManager] Ad shown: ${adType.name}');
+        if (kDebugMode) {
+          print('[MultiAdsManager] Ad shown: ${adType.name}');
+        }
       },
       onAdDismissed: (adType) {
-        print('[MultiAdsManager] Ad dismissed: ${adType.name}');
+        if (kDebugMode) {
+          print('[MultiAdsManager] Ad dismissed: ${adType.name}');
+        }
       },
       onAdClicked: (adType) {
-        print('[MultiAdsManager] Ad clicked: ${adType.name}');
+        if (kDebugMode) {
+          print('[MultiAdsManager] Ad clicked: ${adType.name}');
+        }
       },
       onRewarded: (adType) {
-        print('[MultiAdsManager] Reward earned: ${adType.name}');
+        if (kDebugMode) {
+          print('[MultiAdsManager] Reward earned: ${adType.name}');
+        }
       },
     );
   }

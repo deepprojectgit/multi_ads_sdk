@@ -1,5 +1,5 @@
 /// Enum representing different ad provider types
-/// 
+///
 /// Supported providers:
 /// - [admob]: Google AdMob
 /// - [adx]: Google AdX
@@ -7,10 +7,10 @@
 enum AdProviderType {
   /// Google AdMob provider
   admob,
-  
+
   /// Google AdX provider
   adx,
-  
+
   /// Facebook Audience Network (Meta Ads) provider
   facebook,
 }
