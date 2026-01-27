@@ -1,4 +1,4 @@
-import 'package:flutter/services.dart';
+import 'package:flutter/services.dart' show MethodChannel, PlatformException;
 import '../core/ad_provider_type.dart';
 import '../core/ad_type.dart';
 
@@ -71,7 +71,8 @@ class PlatformAdService {
   /// Throws an exception with "No internet available" if internet is not available.
   static Future<bool> checkInternetConnectivity() async {
     try {
-      final bool isConnected = await _channel.invokeMethod('checkInternetConnectivity');
+      final bool isConnected =
+          await _channel.invokeMethod('checkInternetConnectivity');
       if (!isConnected) {
         throw Exception('No internet available');
       }
