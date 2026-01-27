@@ -1,0 +1,42 @@
+# Files and directories to ignore when publishing to pub.dev
+# See https://dart.dev/tools/pub/publish#what-files-are-published
+
+# IDE files
+.idea/
+.vscode/
+*.iml
+*.ipr
+*.iws
+
+# Build files
+build/
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+.pub-cache/
+.pub/
+
+# Example app (keep it but don't include its build artifacts)
+example/build/
+example/.dart_tool/
+example/.flutter-plugins
+example/.flutter-plugins-dependencies
+example/.packages
+
+# Documentation
+doc/
+
+# Test files (optional - you might want to keep these)
+# test/
+
+# Git
+.git/
+.gitignore
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
