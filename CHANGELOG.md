@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.1] - 2026-01-27
+
+### Added
+- Internet connectivity check functionality
+- `checkInternetConnectivity()` method in `MultiAdsManager` to verify internet availability
+- Native platform implementations for connectivity checking on Android and iOS
+- Automatic error handling with "No internet available" message when connectivity is unavailable
+
+### Features
+- Cross-platform internet connectivity detection using native APIs
+- Android implementation using `ConnectivityManager` and `NetworkCapabilities`
+- iOS implementation using `Network` framework with `NWPathMonitor`
+
 ## [1.0.0] - 2026-01-27
 
 ### Added
