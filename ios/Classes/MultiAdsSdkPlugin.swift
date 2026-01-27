@@ -2,6 +2,7 @@ import Flutter
 import UIKit
 import GoogleMobileAds
 import FBAudienceNetwork
+import Network
 
 /// MultiAdsSdkPlugin - Main plugin class for iOS
 ///
@@ -65,6 +66,9 @@ public class MultiAdsSdkPlugin: NSObject, FlutterPlugin {
                 return
             }
             showAd(providerType: providerType, adType: adType, result: result)
+            
+        case "checkInternetConnectivity":
+            checkInternetConnectivity(result: result)
             
         default:
             result(FlutterMethodNotImplemented)
@@ -418,6 +422,28 @@ public class MultiAdsSdkPlugin: NSObject, FlutterPlugin {
             
         default:
             result(FlutterError(code: "INVALID_AD_TYPE", message: "Unknown ad type", details: nil))
+        }
+    }
+    
+    private func checkInternetConnectivity(result: @escaping FlutterResult) {
+        let monitor = NWPathMonitor()
+        let queue = DispatchQueue(label: "InternetConnectivityMonitor")
+        
+        monitor.pathUpdateHandler = { path in
+            let hasInternet = path.status == .satisfied
+            monitor.cancel()
+            DispatchQueue.main.async {
+                result(hasInternet)
+            }
+        }
+        
+        monitor.start(queue: queue)
+        
+        // Add a timeout to avoid waiting indefinitely
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+            let hasInternet = monitor.currentPath.status == .satisfied
+            monitor.cancel()
+            result(hasInternet)
         }
     }
     

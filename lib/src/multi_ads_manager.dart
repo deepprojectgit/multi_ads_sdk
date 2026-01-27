@@ -179,6 +179,24 @@ class MultiAdsManager {
     await show(AdType.native);
   }
 
+  /// Check internet connectivity
+  ///
+  /// Returns true if internet is available.
+  /// Throws an exception with "No internet available" if internet is not available.
+  ///
+  /// Example:
+  /// ```dart
+  /// try {
+  ///   await MultiAdsManager.checkInternetConnectivity();
+  ///   // Internet is available, proceed with ad operations
+  /// } catch (e) {
+  ///   print('Error: $e'); // "No internet available"
+  /// }
+  /// ```
+  static Future<bool> checkInternetConnectivity() async {
+    return await PlatformAdService.checkInternetConnectivity();
+  }
+
   /// Ensure the SDK is initialized before operations
   static void _ensureInitialized() {
     if (_currentProvider == null || _currentProviderType == null) {

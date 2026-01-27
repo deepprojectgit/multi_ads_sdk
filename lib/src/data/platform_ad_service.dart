@@ -65,6 +65,22 @@ class PlatformAdService {
     }
   }
 
+  /// Check internet connectivity
+  ///
+  /// Returns true if internet is available, false otherwise.
+  /// Throws an exception with "No internet available" if internet is not available.
+  static Future<bool> checkInternetConnectivity() async {
+    try {
+      final bool isConnected = await _channel.invokeMethod('checkInternetConnectivity');
+      if (!isConnected) {
+        throw Exception('No internet available');
+      }
+      return isConnected;
+    } on PlatformException {
+      throw Exception('No internet available');
+    }
+  }
+
   /// Set up event listeners for ad callbacks
   ///
   /// [onAdLoaded] - Called when an ad is successfully loaded

@@ -2,6 +2,8 @@ package com.multiads.sdk
 
 import android.app.Activity
 import android.content.Context
+import android.net.ConnectivityManager
+import android.net.NetworkCapabilities
 import android.view.ViewGroup
 import android.widget.FrameLayout
 import androidx.annotation.NonNull
@@ -78,6 +80,9 @@ class MultiAdsSdkPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
                 val providerType = call.argument<String>("providerType")
                 val adType = call.argument<String>("adType")
                 showAd(providerType, adType, result)
+            }
+            "checkInternetConnectivity" -> {
+                checkInternetConnectivity(result)
             }
             else -> result.notImplemented()
         }
@@ -597,6 +602,33 @@ class MultiAdsSdkPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
                 } ?: result.error("AD_NOT_LOADED", "Native ad not loaded", null)
             }
             else -> result.error("INVALID_AD_TYPE", "Unknown ad type", null)
+        }
+    }
+
+    private fun checkInternetConnectivity(result: Result) {
+        try {
+            val connectivityManager = context?.getSystemService(Context.CONNECTIVITY_SERVICE) as? ConnectivityManager
+            if (connectivityManager == null) {
+                result.success(false)
+                return
+            }
+            
+            val network = connectivityManager.activeNetwork ?: run {
+                result.success(false)
+                return
+            }
+            
+            val networkCapabilities = connectivityManager.getNetworkCapabilities(network) ?: run {
+                result.success(false)
+                return
+            }
+            
+            val hasInternet = networkCapabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) &&
+                    networkCapabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED)
+            
+            result.success(hasInternet)
+        } catch (e: Exception) {
+            result.success(false)
         }
     }
 
