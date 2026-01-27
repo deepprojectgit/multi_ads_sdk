@@ -1,4 +1,4 @@
-import 'package:flutter/services.dart' show MethodChannel, PlatformException;
+import 'package:flutter/services.dart';
 import '../core/ad_provider_type.dart';
 import '../core/ad_type.dart';
 
