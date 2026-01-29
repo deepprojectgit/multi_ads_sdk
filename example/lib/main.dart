@@ -1,7 +1,6 @@
 import 'dart:io' show Platform;
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:multi_ads_sdk/multi_ads_sdk.dart';
 
 void main() {
@@ -479,7 +478,7 @@ class _AdsExamplePageState extends State<AdsExamplePage> {
   Widget _buildBannerAdView(BuildContext context) {
     const height = 50.0;
     if (Platform.isAndroid) {
-      return SizedBox(
+      return const SizedBox(
         height: height,
         child: AndroidView(
           viewType: 'multi_ads_sdk/banner',
@@ -490,7 +489,7 @@ class _AdsExamplePageState extends State<AdsExamplePage> {
       );
     }
     if (Platform.isIOS) {
-      return SizedBox(
+      return const SizedBox(
         height: height,
         child: UiKitView(
           viewType: 'multi_ads_sdk/banner',
@@ -518,7 +517,7 @@ class _AdsExamplePageState extends State<AdsExamplePage> {
   Widget _buildNativeAdView(BuildContext context) {
     const height = 150.0;
     if (Platform.isAndroid) {
-      return SizedBox(
+      return const SizedBox(
         height: height,
         child: AndroidView(
           viewType: 'multi_ads_sdk/native',
@@ -529,7 +528,7 @@ class _AdsExamplePageState extends State<AdsExamplePage> {
       );
     }
     if (Platform.isIOS) {
-      return SizedBox(
+      return const SizedBox(
         height: height,
         child: UiKitView(
           viewType: 'multi_ads_sdk/native',
