@@ -4,8 +4,13 @@ import android.app.Activity
 import android.content.Context
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
+import android.view.LayoutInflater
 import android.view.ViewGroup
+import android.widget.Button
 import android.widget.FrameLayout
+import android.widget.ImageView
+import android.widget.LinearLayout
+import android.widget.TextView
 import androidx.annotation.NonNull
 import com.facebook.ads.*
 import com.google.android.gms.ads.*
@@ -19,6 +24,7 @@ import com.google.android.gms.ads.appopen.AppOpenAd
 import com.google.android.gms.ads.appopen.AppOpenAd.AppOpenAdLoadCallback
 import com.google.android.gms.ads.nativead.NativeAd
 import com.google.android.gms.ads.nativead.NativeAdView
+import com.multiads.sdk.R
 import io.flutter.embedding.engine.plugins.FlutterPlugin
 import io.flutter.embedding.engine.plugins.activity.ActivityAware
 import io.flutter.embedding.engine.plugins.activity.ActivityPluginBinding
@@ -45,7 +51,7 @@ class MultiAdsSdkPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
     private var admobRewardedInterstitialAd: RewardedInterstitialAd? = null
     private var admobAppOpenAd: AppOpenAd? = null
     private var admobNativeAd: NativeAd? = null
-    private var admobBannerAd: AdView? = null
+    private var admobBannerAd: com.google.android.gms.ads.AdView? = null
 
     // Facebook instances (single instance per ad type)
     private var facebookInterstitialAd: com.facebook.ads.InterstitialAd? = null
@@ -53,11 +59,104 @@ class MultiAdsSdkPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
     private var facebookBannerAd: com.facebook.ads.AdView? = null
     private var facebookNativeAd: com.facebook.ads.NativeAd? = null
 
+    // Platform view container for banner (used when Flutter embeds the banner widget)
+    private var bannerContainer: FrameLayout? = null
+    // Platform view container for native ad (used when Flutter embeds the native ad widget)
+    private var nativeContainer: FrameLayout? = null
+    private var currentProviderType: String? = null
+
+    /** Called by BannerAdViewFactory when the platform view is created or disposed. */
+    fun setBannerContainer(container: FrameLayout?) {
+        if (bannerContainer != null && bannerContainer != container) {
+            // Remove current ad view from old container when switching
+            bannerContainer?.removeAllViews()
+        }
+        bannerContainer = container
+        if (container != null) {
+            // If banner is already loaded, attach it to the new container
+            attachBannerToContainer()
+        }
+    }
+
+    private fun attachBannerToContainer() {
+        val container = bannerContainer ?: return
+        container.removeAllViews()
+        when (currentProviderType) {
+            "admob", "adx" -> admobBannerAd?.let { container.addView(it) }
+            "facebook" -> facebookBannerAd?.let { container.addView(it) }
+            else -> { }
+        }
+    }
+
+    /** Called by NativeAdViewFactory when the platform view is created or disposed. */
+    fun setNativeContainer(container: FrameLayout?) {
+        if (nativeContainer != null && nativeContainer != container) {
+            nativeContainer?.removeAllViews()
+        }
+        nativeContainer = container
+        if (container != null) {
+            attachNativeToContainer()
+        }
+    }
+
+    private fun attachNativeToContainer() {
+        val container = nativeContainer ?: return
+        val ctx = context ?: return
+        container.removeAllViews()
+        when (currentProviderType) {
+            "admob", "adx" -> {
+                val ad = admobNativeAd ?: return
+                val inflater = LayoutInflater.from(ctx)
+                val adView = inflater.inflate(R.layout.native_ad_layout, container, false) as NativeAdView
+                (adView.findViewById<TextView>(R.id.native_ad_headline)).text = ad.headline ?: ""
+                adView.headlineView = adView.findViewById(R.id.native_ad_headline)
+                adView.bodyView = adView.findViewById(R.id.native_ad_body)
+                (adView.bodyView as? TextView)?.text = ad.body ?: ""
+                adView.callToActionView = adView.findViewById(R.id.native_ad_call_to_action)
+                (adView.callToActionView as? Button)?.text = ad.callToAction ?: ""
+                adView.iconView = adView.findViewById(R.id.native_ad_icon)
+                ad.icon?.drawable?.let { (adView.iconView as? ImageView)?.setImageDrawable(it) }
+                adView.setNativeAd(ad)
+                container.addView(adView)
+            }
+            "facebook" -> {
+                val ad = facebookNativeAd ?: return
+                val root = LinearLayout(ctx).apply {
+                    orientation = LinearLayout.VERTICAL
+                    setPadding(dpToPx(12), dpToPx(12), dpToPx(12), dpToPx(12))
+                }
+                val mediaView = com.facebook.ads.MediaView(ctx)
+                root.addView(mediaView, ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dpToPx(150)))
+                val titleView = TextView(ctx).apply { text = ad.advertiserName; textSize = 16f; setPadding(0, dpToPx(8), 0, 0) }
+                root.addView(titleView)
+                val bodyView = TextView(ctx).apply { text = ad.adBodyText; textSize = 14f; setPadding(0, dpToPx(4), 0, 0) }
+                root.addView(bodyView)
+                val ctaButton = Button(ctx).apply { text = ad.adCallToAction; setPadding(dpToPx(16), dpToPx(8), dpToPx(16), dpToPx(8)) }
+                root.addView(ctaButton, LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT).apply { topMargin = dpToPx(8) })
+                ad.registerViewForInteraction(root, mediaView)
+                container.addView(root)
+            }
+            else -> { }
+        }
+    }
+
+    private fun dpToPx(dp: Int): Int {
+        val density = context?.resources?.displayMetrics?.density ?: 1f
+        return (dp * density).toInt()
+    }
 
     override fun onAttachedToEngine(@NonNull flutterPluginBinding: FlutterPlugin.FlutterPluginBinding) {
         channel = MethodChannel(flutterPluginBinding.binaryMessenger, "multi_ads_sdk")
         channel.setMethodCallHandler(this)
         context = flutterPluginBinding.applicationContext
+        flutterPluginBinding.platformViewRegistry.registerViewFactory(
+            "multi_ads_sdk/banner",
+            BannerAdViewFactory(this)
+        )
+        flutterPluginBinding.platformViewRegistry.registerViewFactory(
+            "multi_ads_sdk/native",
+            NativeAdViewFactory(this)
+        )
     }
 
     override fun onMethodCall(@NonNull call: MethodCall, @NonNull result: Result) {
@@ -90,24 +189,35 @@ class MultiAdsSdkPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
 
     private fun initProvider(providerType: String?, result: Result) {
         try {
+            val ctx = context
+            if (ctx == null) {
+                result.error("INIT_ERROR", "Context is null", null)
+                return
+            }
+            currentProviderType = providerType
             when (providerType) {
                 "admob", "adx" -> {
-                    MobileAds.initialize(context!!) {}
-                    result.success(true)
+                    MobileAds.initialize(ctx) { initializationStatus ->
+                        result.success(true)
+                    }
                 }
                 "facebook" -> {
-                    AudienceNetworkAds.initialize(context!!)
+                    AudienceNetworkAds.initialize(ctx)
                     result.success(true)
                 }
-                else -> result.error("INVALID_PROVIDER", "Unknown provider type", null)
+                else -> result.error("INVALID_PROVIDER", "Unknown provider type: $providerType", null)
             }
         } catch (e: Exception) {
-            result.error("INIT_ERROR", e.message, null)
+            result.error("INIT_ERROR", "Initialization failed: ${e.message}", null)
         }
     }
 
     private fun loadAd(providerType: String?, adType: String?, adUnitId: String, result: Result) {
         try {
+            if (context == null) {
+                result.error("LOAD_ERROR", "Context is null", null)
+                return
+            }
             when (providerType) {
                 "admob" -> loadAdMobAd(adType, adUnitId, result)
                 "adx" -> loadAdXAd(adType, adUnitId, result)
@@ -115,11 +225,16 @@ class MultiAdsSdkPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
                 else -> result.error("INVALID_PROVIDER", "Unknown provider type", null)
             }
         } catch (e: Exception) {
-            result.error("LOAD_ERROR", e.message, null)
+            result.error("LOAD_ERROR", "Failed to load ad: ${e.message}", null)
         }
     }
 
     private fun loadAdMobAd(adType: String?, adUnitId: String, result: Result) {
+        val ctx = context
+        if (ctx == null) {
+            result.error("LOAD_ERROR", "Context is null", null)
+            return
+        }
         when (adType) {
             "interstitial" -> {
                 if (admobInterstitialAd != null) {
@@ -128,7 +243,7 @@ class MultiAdsSdkPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
                 }
                 val adRequest = AdRequest.Builder().build()
                 InterstitialAd.load(
-                    context!!,
+                    ctx,
                     adUnitId,
                     adRequest,
                     object : InterstitialAdLoadCallback() {
@@ -152,7 +267,7 @@ class MultiAdsSdkPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
                 }
                 val adRequest = AdRequest.Builder().build()
                 RewardedAd.load(
-                    context!!,
+                    ctx,
                     adUnitId,
                     adRequest,
                     object : RewardedAdLoadCallback() {
@@ -176,7 +291,7 @@ class MultiAdsSdkPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
                 }
                 val adRequest = AdRequest.Builder().build()
                 RewardedInterstitialAd.load(
-                    context!!,
+                    ctx,
                     adUnitId,
                     adRequest,
                     object : RewardedInterstitialAdLoadCallback() {
@@ -200,7 +315,7 @@ class MultiAdsSdkPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
                 }
                 val adRequest = AdRequest.Builder().build()
                 AppOpenAd.load(
-                    context!!,
+                    ctx,
                     adUnitId,
                     adRequest,
                     AppOpenAd.APP_OPEN_AD_ORIENTATION_PORTRAIT,
@@ -223,14 +338,13 @@ class MultiAdsSdkPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
                     result.success(true)
                     return
                 }
-                admobBannerAd = AdView(context!!)
+                admobBannerAd = com.google.android.gms.ads.AdView(ctx)
                 admobBannerAd?.adUnitId = adUnitId
-                admobBannerAd?.setAdSize(AdSize.BANNER)
-                val adRequest = AdRequest.Builder().build()
-                admobBannerAd?.loadAd(adRequest)
-                admobBannerAd?.adListener = object : AdListener() {
+                admobBannerAd?.setAdSize(com.google.android.gms.ads.AdSize.BANNER)
+                admobBannerAd?.adListener = object : com.google.android.gms.ads.AdListener() {
                     override fun onAdLoaded() {
                         sendEvent("onAdLoaded", mapOf("adType" to "banner"))
+                        attachBannerToContainer()
                         result.success(true)
                     }
 
@@ -239,6 +353,8 @@ class MultiAdsSdkPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
                         result.error("LOAD_FAILED", error.message, null)
                     }
                 }
+                val adRequest = AdRequest.Builder().build()
+                admobBannerAd?.loadAd(adRequest)
             }
             "native" -> {
                 if (admobNativeAd != null) {
@@ -246,12 +362,13 @@ class MultiAdsSdkPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
                     return
                 }
                 val adRequest = AdRequest.Builder().build()
-                val builder = AdLoader.Builder(context!!, adUnitId)
+                val builder = AdLoader.Builder(ctx, adUnitId)
                 builder.forNativeAd { nativeAd ->
                     admobNativeAd = nativeAd
                     sendEvent("onAdLoaded", mapOf("adType" to "native"))
+                    attachNativeToContainer()
                     result.success(true)
-                }.withAdListener(object : AdListener() {
+                }.withAdListener(object : com.google.android.gms.ads.AdListener() {
                     override fun onAdFailedToLoad(error: LoadAdError) {
                         sendEvent("onAdFailedToLoad", mapOf("adType" to "native", "error" to error.message))
                         result.error("LOAD_FAILED", error.message, null)
@@ -263,6 +380,11 @@ class MultiAdsSdkPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
     }
 
     private fun loadAdXAd(adType: String?, adUnitId: String, result: Result) {
+        val ctx = context
+        if (ctx == null) {
+            result.error("LOAD_ERROR", "Context is null", null)
+            return
+        }
         // AdX uses same SDK as AdMob, just different ad unit IDs
         when (adType) {
             "interstitial" -> {
@@ -272,7 +394,7 @@ class MultiAdsSdkPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
                 }
                 val adRequest = AdRequest.Builder().build()
                 InterstitialAd.load(
-                    context!!,
+                    ctx,
                     adUnitId,
                     adRequest,
                     object : InterstitialAdLoadCallback() {
@@ -296,7 +418,7 @@ class MultiAdsSdkPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
                 }
                 val adRequest = AdRequest.Builder().build()
                 RewardedAd.load(
-                    context!!,
+                    ctx,
                     adUnitId,
                     adRequest,
                     object : RewardedAdLoadCallback() {
@@ -318,13 +440,18 @@ class MultiAdsSdkPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
     }
 
     private fun loadFacebookAd(adType: String?, adUnitId: String, result: Result) {
+        val ctx = context
+        if (ctx == null) {
+            result.error("LOAD_ERROR", "Context is null", null)
+            return
+        }
         when (adType) {
             "interstitial" -> {
                 if (facebookInterstitialAd != null) {
                     result.success(true)
                     return
                 }
-                facebookInterstitialAd = com.facebook.ads.InterstitialAd(context!!, adUnitId)
+                facebookInterstitialAd = com.facebook.ads.InterstitialAd(ctx, adUnitId)
                 facebookInterstitialAd?.buildLoadAdConfig()
                     ?.withAdListener(object : InterstitialAdListener {
                         override fun onInterstitialDisplayed(ad: com.facebook.ads.Ad) {
@@ -336,7 +463,7 @@ class MultiAdsSdkPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
                             facebookInterstitialAd = null
                         }
 
-                        override fun onError(ad: com.facebook.ads.Ad, error: AdError) {
+                        override fun onError(ad: com.facebook.ads.Ad, error: com.facebook.ads.AdError) {
                             sendEvent("onAdFailedToLoad", mapOf("adType" to "interstitial", "error" to error.errorMessage))
                             result.error("LOAD_FAILED", error.errorMessage, null)
                         }
@@ -360,7 +487,7 @@ class MultiAdsSdkPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
                     result.success(true)
                     return
                 }
-                facebookRewardedAd = RewardedVideoAd(context!!, adUnitId)
+                facebookRewardedAd = RewardedVideoAd(ctx, adUnitId)
                 facebookRewardedAd?.buildLoadAdConfig()
                     ?.withAdListener(object : RewardedVideoAdListener {
                         override fun onRewardedVideoCompleted() {
@@ -372,7 +499,7 @@ class MultiAdsSdkPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
                             facebookRewardedAd = null
                         }
 
-                        override fun onError(ad: com.facebook.ads.Ad, error: AdError) {
+                        override fun onError(ad: com.facebook.ads.Ad, error: com.facebook.ads.AdError) {
                             sendEvent("onAdFailedToLoad", mapOf("adType" to "rewarded", "error" to error.errorMessage))
                             result.error("LOAD_FAILED", error.errorMessage, null)
                         }
@@ -396,16 +523,17 @@ class MultiAdsSdkPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
                     result.success(true)
                     return
                 }
-                facebookBannerAd = com.facebook.ads.AdView(context!!, adUnitId, com.facebook.ads.AdSize.BANNER_HEIGHT_50)
+                facebookBannerAd = com.facebook.ads.AdView(ctx, adUnitId, com.facebook.ads.AdSize.BANNER_HEIGHT_50)
                 facebookBannerAd?.buildLoadAdConfig()
-                    ?.withAdListener(object : AdListener {
-                        override fun onError(ad: com.facebook.ads.Ad, error: AdError) {
+                    ?.withAdListener(object : com.facebook.ads.AdListener {
+                        override fun onError(ad: com.facebook.ads.Ad, error: com.facebook.ads.AdError) {
                             sendEvent("onAdFailedToLoad", mapOf("adType" to "banner", "error" to error.errorMessage))
                             result.error("LOAD_FAILED", error.errorMessage, null)
                         }
 
                         override fun onAdLoaded(ad: com.facebook.ads.Ad) {
                             sendEvent("onAdLoaded", mapOf("adType" to "banner"))
+                            attachBannerToContainer()
                             result.success(true)
                         }
 
@@ -423,16 +551,17 @@ class MultiAdsSdkPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
                     result.success(true)
                     return
                 }
-                facebookNativeAd = com.facebook.ads.NativeAd(context!!, adUnitId)
+                facebookNativeAd = com.facebook.ads.NativeAd(ctx, adUnitId)
                 facebookNativeAd?.buildLoadAdConfig()
-                    ?.withAdListener(object : NativeAdListener {
+                    ?.withAdListener(object : com.facebook.ads.NativeAdListener {
                         override fun onMediaDownloaded(ad: com.facebook.ads.Ad) {}
-                        override fun onError(ad: com.facebook.ads.Ad, error: AdError) {
+                        override fun onError(ad: com.facebook.ads.Ad, error: com.facebook.ads.AdError) {
                             sendEvent("onAdFailedToLoad", mapOf("adType" to "native", "error" to error.errorMessage))
                             result.error("LOAD_FAILED", error.errorMessage, null)
                         }
                         override fun onAdLoaded(ad: com.facebook.ads.Ad) {
                             sendEvent("onAdLoaded", mapOf("adType" to "native"))
+                            attachNativeToContainer()
                             result.success(true)
                         }
                         override fun onAdClicked(ad: com.facebook.ads.Ad) {
@@ -468,8 +597,8 @@ class MultiAdsSdkPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
 
         when (adType) {
             "interstitial" -> {
-                admobInterstitialAd?.let { ad ->
-                    ad.fullScreenContentCallback = object : FullScreenContentCallback() {
+                if (admobInterstitialAd != null) {
+                    admobInterstitialAd?.fullScreenContentCallback = object : FullScreenContentCallback() {
                         override fun onAdDismissedFullScreenContent() {
                             sendEvent("onAdDismissed", mapOf("adType" to "interstitial"))
                             admobInterstitialAd = null
@@ -483,13 +612,15 @@ class MultiAdsSdkPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
                             sendEvent("onAdClicked", mapOf("adType" to "interstitial"))
                         }
                     }
-                    ad.show(activity)
+                    admobInterstitialAd?.show(activity)
                     result.success(true)
-                } ?: result.error("AD_NOT_LOADED", "Interstitial ad not loaded", null)
+                } else {
+                    result.error("AD_NOT_LOADED", "Interstitial ad not loaded", null)
+                }
             }
             "rewarded" -> {
-                admobRewardedAd?.let { ad ->
-                    ad.fullScreenContentCallback = object : FullScreenContentCallback() {
+                if (admobRewardedAd != null) {
+                    admobRewardedAd?.fullScreenContentCallback = object : FullScreenContentCallback() {
                         override fun onAdDismissedFullScreenContent() {
                             sendEvent("onAdDismissed", mapOf("adType" to "rewarded"))
                             admobRewardedAd = null
@@ -503,15 +634,17 @@ class MultiAdsSdkPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
                             sendEvent("onAdClicked", mapOf("adType" to "rewarded"))
                         }
                     }
-                    ad.show(activity) { rewardItem ->
+                    admobRewardedAd?.show(activity) { rewardItem ->
                         sendEvent("onRewarded", mapOf("adType" to "rewarded"))
                     }
                     result.success(true)
-                } ?: result.error("AD_NOT_LOADED", "Rewarded ad not loaded", null)
+                } else {
+                    result.error("AD_NOT_LOADED", "Rewarded ad not loaded", null)
+                }
             }
             "rewardedInterstitial" -> {
-                admobRewardedInterstitialAd?.let { ad ->
-                    ad.fullScreenContentCallback = object : FullScreenContentCallback() {
+                if (admobRewardedInterstitialAd != null) {
+                    admobRewardedInterstitialAd?.fullScreenContentCallback = object : FullScreenContentCallback() {
                         override fun onAdDismissedFullScreenContent() {
                             sendEvent("onAdDismissed", mapOf("adType" to "rewardedInterstitial"))
                             admobRewardedInterstitialAd = null
@@ -525,15 +658,17 @@ class MultiAdsSdkPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
                             sendEvent("onAdClicked", mapOf("adType" to "rewardedInterstitial"))
                         }
                     }
-                    ad.show(activity) { rewardItem ->
+                    admobRewardedInterstitialAd?.show(activity) { rewardItem ->
                         sendEvent("onRewarded", mapOf("adType" to "rewardedInterstitial"))
                     }
                     result.success(true)
-                } ?: result.error("AD_NOT_LOADED", "Rewarded interstitial ad not loaded", null)
+                } else {
+                    result.error("AD_NOT_LOADED", "Rewarded interstitial ad not loaded", null)
+                }
             }
             "appOpen" -> {
-                admobAppOpenAd?.let { ad ->
-                    ad.fullScreenContentCallback = object : FullScreenContentCallback() {
+                if (admobAppOpenAd != null) {
+                    admobAppOpenAd?.fullScreenContentCallback = object : FullScreenContentCallback() {
                         override fun onAdDismissedFullScreenContent() {
                             sendEvent("onAdDismissed", mapOf("adType" to "appOpen"))
                             admobAppOpenAd = null
@@ -547,23 +682,29 @@ class MultiAdsSdkPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
                             sendEvent("onAdClicked", mapOf("adType" to "appOpen"))
                         }
                     }
-                    ad.show(activity)
+                    admobAppOpenAd?.show(activity)
                     result.success(true)
-                } ?: result.error("AD_NOT_LOADED", "App open ad not loaded", null)
+                } else {
+                    result.error("AD_NOT_LOADED", "App open ad not loaded", null)
+                }
             }
             "banner" -> {
-                admobBannerAd?.let { banner ->
-                    val container = FrameLayout(activity)
-                    container.addView(banner)
+                if (admobBannerAd != null) {
+                    attachBannerToContainer()
                     sendEvent("onAdShown", mapOf("adType" to "banner"))
                     result.success(true)
-                } ?: result.error("AD_NOT_LOADED", "Banner ad not loaded", null)
+                } else {
+                    result.error("AD_NOT_LOADED", "Banner ad not loaded", null)
+                }
             }
             "native" -> {
-                admobNativeAd?.let {
+                if (admobNativeAd != null) {
+                    attachNativeToContainer()
                     sendEvent("onAdShown", mapOf("adType" to "native"))
                     result.success(true)
-                } ?: result.error("AD_NOT_LOADED", "Native ad not loaded", null)
+                } else {
+                    result.error("AD_NOT_LOADED", "Native ad not loaded", null)
+                }
             }
             else -> result.error("INVALID_AD_TYPE", "Unknown ad type", null)
         }
@@ -582,24 +723,38 @@ class MultiAdsSdkPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
 
         when (adType) {
             "interstitial" -> {
-                facebookInterstitialAd?.show() ?: result.error("AD_NOT_LOADED", "Interstitial ad not loaded", null)
+                if (facebookInterstitialAd != null) {
+                    facebookInterstitialAd?.show()
+                    result.success(true)
+                } else {
+                    result.error("AD_NOT_LOADED", "Interstitial ad not loaded", null)
+                }
             }
             "rewarded" -> {
-                facebookRewardedAd?.show() ?: result.error("AD_NOT_LOADED", "Rewarded ad not loaded", null)
+                if (facebookRewardedAd != null) {
+                    facebookRewardedAd?.show()
+                    result.success(true)
+                } else {
+                    result.error("AD_NOT_LOADED", "Rewarded ad not loaded", null)
+                }
             }
             "banner" -> {
-                facebookBannerAd?.let { banner ->
-                    val container = FrameLayout(activity)
-                    container.addView(banner)
+                if (facebookBannerAd != null) {
+                    attachBannerToContainer()
                     sendEvent("onAdShown", mapOf("adType" to "banner"))
                     result.success(true)
-                } ?: result.error("AD_NOT_LOADED", "Banner ad not loaded", null)
+                } else {
+                    result.error("AD_NOT_LOADED", "Banner ad not loaded", null)
+                }
             }
             "native" -> {
-                facebookNativeAd?.let {
+                if (facebookNativeAd != null) {
+                    attachNativeToContainer()
                     sendEvent("onAdShown", mapOf("adType" to "native"))
                     result.success(true)
-                } ?: result.error("AD_NOT_LOADED", "Native ad not loaded", null)
+                } else {
+                    result.error("AD_NOT_LOADED", "Native ad not loaded", null)
+                }
             }
             else -> result.error("INVALID_AD_TYPE", "Unknown ad type", null)
         }

@@ -26,6 +26,159 @@ public class MultiAdsSdkPlugin: NSObject, FlutterPlugin {
     private var facebookBannerAd: FBAdView?
     private var facebookNativeAd: FBNativeAd?
     
+    // Platform view container for banner (used when Flutter embeds the banner widget)
+    private var bannerContainer: UIView?
+    // Platform view container for native ad (used when Flutter embeds the native ad widget)
+    private var nativeContainer: UIView?
+    private var currentProviderType: String?
+    private var bannerLoadResult: FlutterResult?
+    private var nativeLoadResult: FlutterResult?
+    // Retain GADAdLoader so it is not deallocated before native ad load completes
+    private var admobNativeAdLoader: GADAdLoader?
+    
+    /// Called by BannerAdViewFactory when the platform view is created or disposed.
+    func setBannerContainer(_ view: UIView?) {
+        bannerContainer?.subviews.forEach { $0.removeFromSuperview() }
+        bannerContainer = view
+        if view != nil {
+            attachBannerToContainer()
+        }
+    }
+    
+    private func attachBannerToContainer() {
+        guard let container = bannerContainer else { return }
+        container.subviews.forEach { $0.removeFromSuperview() }
+        if let banner = admobBannerAd, (currentProviderType == "admob" || currentProviderType == "adx") {
+            banner.translatesAutoresizingMaskIntoConstraints = false
+            container.addSubview(banner)
+            NSLayoutConstraint.activate([
+                banner.leadingAnchor.constraint(equalTo: container.leadingAnchor),
+                banner.trailingAnchor.constraint(equalTo: container.trailingAnchor),
+                banner.topAnchor.constraint(equalTo: container.topAnchor),
+                banner.bottomAnchor.constraint(equalTo: container.bottomAnchor)
+            ])
+        } else if let banner = facebookBannerAd, currentProviderType == "facebook" {
+            banner.translatesAutoresizingMaskIntoConstraints = false
+            container.addSubview(banner)
+            NSLayoutConstraint.activate([
+                banner.leadingAnchor.constraint(equalTo: container.leadingAnchor),
+                banner.trailingAnchor.constraint(equalTo: container.trailingAnchor),
+                banner.topAnchor.constraint(equalTo: container.topAnchor),
+                banner.bottomAnchor.constraint(equalTo: container.bottomAnchor)
+            ])
+        }
+    }
+    
+    /// Called by NativeAdPlatformView when the platform view is created or disposed.
+    func setNativeContainer(_ view: UIView?) {
+        nativeContainer?.subviews.forEach { $0.removeFromSuperview() }
+        nativeContainer = view
+        if view != nil {
+            attachNativeToContainer()
+        }
+    }
+    
+    private func attachNativeToContainer() {
+        guard let container = nativeContainer else { return }
+        container.subviews.forEach { $0.removeFromSuperview() }
+        if currentProviderType == "admob" || currentProviderType == "adx", let ad = admobNativeAd {
+            let nativeAdView = GADNativeAdView()
+            nativeAdView.translatesAutoresizingMaskIntoConstraints = false
+            nativeAdView.backgroundColor = .systemBackground
+            let stack = UIStackView()
+            stack.axis = .horizontal
+            stack.spacing = 12
+            stack.translatesAutoresizingMaskIntoConstraints = false
+            if let icon = ad.icon, let image = icon.image {
+                let iconView = UIImageView(image: image)
+                iconView.contentMode = .scaleAspectFit
+                iconView.widthAnchor.constraint(equalToConstant: 48).isActive = true
+                iconView.heightAnchor.constraint(equalToConstant: 48).isActive = true
+                nativeAdView.iconView = iconView
+                stack.addArrangedSubview(iconView)
+            }
+            let textStack = UIStackView()
+            textStack.axis = .vertical
+            textStack.spacing = 4
+            let headlineLabel = UILabel()
+            headlineLabel.text = ad.headline
+            headlineLabel.font = .boldSystemFont(ofSize: 16)
+            headlineLabel.numberOfLines = 1
+            nativeAdView.headlineView = headlineLabel
+            textStack.addArrangedSubview(headlineLabel)
+            let bodyLabel = UILabel()
+            bodyLabel.text = ad.body
+            bodyLabel.font = .systemFont(ofSize: 14)
+            bodyLabel.numberOfLines = 2
+            nativeAdView.bodyView = bodyLabel
+            textStack.addArrangedSubview(bodyLabel)
+            let ctaButton = UIButton(type: .system)
+            ctaButton.setTitle(ad.callToAction, for: .normal)
+            nativeAdView.callToActionView = ctaButton
+            textStack.addArrangedSubview(ctaButton)
+            stack.addArrangedSubview(textStack)
+            nativeAdView.addSubview(stack)
+            NSLayoutConstraint.activate([
+                stack.leadingAnchor.constraint(equalTo: nativeAdView.leadingAnchor, constant: 12),
+                stack.trailingAnchor.constraint(equalTo: nativeAdView.trailingAnchor, constant: -12),
+                stack.topAnchor.constraint(equalTo: nativeAdView.topAnchor, constant: 12),
+                stack.bottomAnchor.constraint(equalTo: nativeAdView.bottomAnchor, constant: -12)
+            ])
+            nativeAdView.nativeAd = ad
+            container.addSubview(nativeAdView)
+            NSLayoutConstraint.activate([
+                nativeAdView.leadingAnchor.constraint(equalTo: container.leadingAnchor),
+                nativeAdView.trailingAnchor.constraint(equalTo: container.trailingAnchor),
+                nativeAdView.topAnchor.constraint(equalTo: container.topAnchor),
+                nativeAdView.bottomAnchor.constraint(equalTo: container.bottomAnchor)
+            ])
+        } else if currentProviderType == "facebook", let ad = facebookNativeAd {
+            let root = UIView()
+            root.translatesAutoresizingMaskIntoConstraints = false
+            root.backgroundColor = .systemBackground
+            let mediaView = FBMediaView()
+            mediaView.translatesAutoresizingMaskIntoConstraints = false
+            root.addSubview(mediaView)
+            let titleLabel = UILabel()
+            titleLabel.text = ad.advertiserName
+            titleLabel.font = .boldSystemFont(ofSize: 16)
+            titleLabel.translatesAutoresizingMaskIntoConstraints = false
+            root.addSubview(titleLabel)
+            let bodyLabel = UILabel()
+            bodyLabel.text = ad.bodyText
+            bodyLabel.font = .systemFont(ofSize: 14)
+            bodyLabel.numberOfLines = 2
+            bodyLabel.translatesAutoresizingMaskIntoConstraints = false
+            root.addSubview(bodyLabel)
+            let ctaButton = UIButton(type: .system)
+            ctaButton.setTitle(ad.callToAction, for: .normal)
+            ctaButton.translatesAutoresizingMaskIntoConstraints = false
+            root.addSubview(ctaButton)
+            NSLayoutConstraint.activate([
+                mediaView.leadingAnchor.constraint(equalTo: root.leadingAnchor),
+                mediaView.trailingAnchor.constraint(equalTo: root.trailingAnchor),
+                mediaView.topAnchor.constraint(equalTo: root.topAnchor),
+                mediaView.heightAnchor.constraint(equalToConstant: 150),
+                titleLabel.leadingAnchor.constraint(equalTo: root.leadingAnchor, constant: 12),
+                titleLabel.trailingAnchor.constraint(equalTo: root.trailingAnchor, constant: -12),
+                titleLabel.topAnchor.constraint(equalTo: mediaView.bottomAnchor, constant: 8),
+                bodyLabel.leadingAnchor.constraint(equalTo: root.leadingAnchor, constant: 12),
+                bodyLabel.trailingAnchor.constraint(equalTo: root.trailingAnchor, constant: -12),
+                bodyLabel.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: 4),
+                ctaButton.leadingAnchor.constraint(equalTo: root.leadingAnchor, constant: 12),
+                ctaButton.topAnchor.constraint(equalTo: bodyLabel.bottomAnchor, constant: 8),
+                ctaButton.bottomAnchor.constraint(equalTo: root.bottomAnchor, constant: -12)
+            ])
+            ad.registerView(forInteraction: root, mediaView: mediaView, iconView: nil, viewController: nil)
+            container.addSubview(root)
+            NSLayoutConstraint.activate([
+                root.leadingAnchor.constraint(equalTo: container.leadingAnchor),
+                root.trailingAnchor.constraint(equalTo: container.trailingAnchor),
+                root.topAnchor.constraint(equalTo: container.topAnchor),
+                root.bottomAnchor.constraint(equalTo: container.bottomAnchor)
+            ])
+        }
+    }
     
     init(channel: FlutterMethodChannel) {
         self.channel = channel
@@ -36,6 +189,14 @@ public class MultiAdsSdkPlugin: NSObject, FlutterPlugin {
         let channel = FlutterMethodChannel(name: "multi_ads_sdk", binaryMessenger: registrar.messenger())
         let instance = MultiAdsSdkPlugin(channel: channel)
         registrar.addMethodCallDelegate(instance, channel: channel)
+        registrar.register(
+            BannerAdViewFactory(plugin: instance),
+            withId: "multi_ads_sdk/banner"
+        )
+        registrar.register(
+            NativeAdViewFactory(plugin: instance),
+            withId: "multi_ads_sdk/native"
+        )
     }
     
     public func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
@@ -76,6 +237,7 @@ public class MultiAdsSdkPlugin: NSObject, FlutterPlugin {
     }
     
     private func initProvider(providerType: String, result: @escaping FlutterResult) {
+        currentProviderType = providerType
         switch providerType {
         case "admob", "adx":
             GADMobileAds.sharedInstance().start(completionHandler: { _ in
@@ -90,6 +252,7 @@ public class MultiAdsSdkPlugin: NSObject, FlutterPlugin {
     }
     
     private func loadAd(providerType: String, adType: String, adUnitId: String, result: @escaping FlutterResult) {
+        currentProviderType = providerType
         switch providerType {
         case "admob":
             loadAdMobAd(adType: adType, adUnitId: adUnitId, result: result)
@@ -178,26 +341,27 @@ public class MultiAdsSdkPlugin: NSObject, FlutterPlugin {
             
         case "banner":
             if admobBannerAd != nil {
+                attachBannerToContainer()
                 result(true)
                 return
             }
+            bannerLoadResult = result
             admobBannerAd = GADBannerView(adSize: GADAdSizeBanner)
             admobBannerAd?.adUnitID = adUnitId
-            admobBannerAd?.load(GADRequest())
             admobBannerAd?.delegate = self
-            sendEvent(method: "onAdLoaded", arguments: ["adType": "banner"])
-            result(true)
+            admobBannerAd?.load(GADRequest())
             
         case "native":
             if admobNativeAd != nil {
                 result(true)
                 return
             }
+            nativeLoadResult = result
             let request = GADRequest()
             let loader = GADAdLoader(adUnitID: adUnitId, rootViewController: nil, adTypes: [.native], options: nil)
             loader.delegate = self
+            admobNativeAdLoader = loader
             loader.load(request)
-            result(true)
             
         default:
             result(FlutterError(code: "INVALID_AD_TYPE", message: "Unknown ad type", details: nil))
@@ -272,13 +436,14 @@ public class MultiAdsSdkPlugin: NSObject, FlutterPlugin {
             
         case "banner":
             if facebookBannerAd != nil {
+                attachBannerToContainer()
                 result(true)
                 return
             }
+            bannerLoadResult = result
             facebookBannerAd = FBAdView(placementID: adUnitId, adSize: kFBAdSizeHeight50Banner, rootViewController: nil)
             facebookBannerAd?.delegate = self
             facebookBannerAd?.loadAd()
-            result(true)
             
         case "native":
             if facebookNativeAd != nil {
@@ -373,6 +538,7 @@ public class MultiAdsSdkPlugin: NSObject, FlutterPlugin {
                 result(FlutterError(code: "AD_NOT_LOADED", message: "Native ad not loaded", details: nil))
                 return
             }
+            attachNativeToContainer()
             sendEvent(method: "onAdShown", arguments: ["adType": "native"])
             result(true)
             
@@ -417,6 +583,7 @@ public class MultiAdsSdkPlugin: NSObject, FlutterPlugin {
                 result(FlutterError(code: "AD_NOT_LOADED", message: "Native ad not loaded", details: nil))
                 return
             }
+            attachNativeToContainer()
             sendEvent(method: "onAdShown", arguments: ["adType": "native"])
             result(true)
             
@@ -492,10 +659,15 @@ extension MultiAdsSdkPlugin: GADFullScreenContentDelegate {
 extension MultiAdsSdkPlugin: GADBannerViewDelegate {
     public func bannerViewDidReceiveAd(_ bannerView: GADBannerView) {
         sendEvent(method: "onAdLoaded", arguments: ["adType": "banner"])
+        attachBannerToContainer()
+        bannerLoadResult?(true)
+        bannerLoadResult = nil
     }
     
     public func bannerView(_ bannerView: GADBannerView, didFailToReceiveAdWithError error: Error) {
         sendEvent(method: "onAdFailedToLoad", arguments: ["adType": "banner", "error": error.localizedDescription])
+        bannerLoadResult?(FlutterError(code: "LOAD_FAILED", message: error.localizedDescription, details: nil))
+        bannerLoadResult = nil
     }
     
     public func bannerViewDidRecordImpression(_ bannerView: GADBannerView) {
@@ -511,11 +683,18 @@ extension MultiAdsSdkPlugin: GADBannerViewDelegate {
 extension MultiAdsSdkPlugin: GADAdLoaderDelegate, GADNativeAdLoaderDelegate {
     public func adLoader(_ adLoader: GADAdLoader, didReceive nativeAd: GADNativeAd) {
         admobNativeAd = nativeAd
+        admobNativeAdLoader = nil
         sendEvent(method: "onAdLoaded", arguments: ["adType": "native"])
+        attachNativeToContainer()
+        nativeLoadResult?(true)
+        nativeLoadResult = nil
     }
     
     public func adLoader(_ adLoader: GADAdLoader, didFailToReceiveAdWithError error: Error) {
+        admobNativeAdLoader = nil
         sendEvent(method: "onAdFailedToLoad", arguments: ["adType": "native", "error": error.localizedDescription])
+        nativeLoadResult?(FlutterError(code: "LOAD_FAILED", message: error.localizedDescription, details: nil))
+        nativeLoadResult = nil
     }
 }
 
@@ -577,10 +756,15 @@ extension MultiAdsSdkPlugin: FBRewardedVideoAdDelegate {
 extension MultiAdsSdkPlugin: FBAdViewDelegate {
     public func adViewDidLoad(_ adView: FBAdView) {
         sendEvent(method: "onAdLoaded", arguments: ["adType": "banner"])
+        attachBannerToContainer()
+        bannerLoadResult?(true)
+        bannerLoadResult = nil
     }
     
     public func adView(_ adView: FBAdView, didFailWithError error: Error) {
         sendEvent(method: "onAdFailedToLoad", arguments: ["adType": "banner", "error": error.localizedDescription])
+        bannerLoadResult?(FlutterError(code: "LOAD_FAILED", message: error.localizedDescription, details: nil))
+        bannerLoadResult = nil
     }
     
     public func adViewWillLogImpression(_ adView: FBAdView) {
@@ -596,6 +780,7 @@ extension MultiAdsSdkPlugin: FBAdViewDelegate {
 extension MultiAdsSdkPlugin: FBNativeAdDelegate {
     public func nativeAdDidLoad(_ nativeAd: FBNativeAd) {
         sendEvent(method: "onAdLoaded", arguments: ["adType": "native"])
+        attachNativeToContainer()
     }
     
     public func nativeAd(_ nativeAd: FBNativeAd, didFailWithError error: Error) {

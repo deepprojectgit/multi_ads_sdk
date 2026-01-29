@@ -1,4 +1,7 @@
+import 'dart:io' show Platform;
+
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:multi_ads_sdk/multi_ads_sdk.dart';
 
 void main() {
@@ -135,7 +138,7 @@ class _AdsExamplePageState extends State<AdsExamplePage> {
       _log('Loading app open ad...');
       // Use test ad unit ID - replace with your own
       await MultiAdsManager.loadAppOpen(
-        adUnitId: 'ca-app-pub-3940256099942544/3419835294',
+        adUnitId: 'ca-app-pub-3940256099942544/9257395921', // App Open test ad unit
       );
       setState(() {
         _statusMessage = 'App open ad loaded';
@@ -272,185 +275,279 @@ class _AdsExamplePageState extends State<AdsExamplePage> {
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
         title: const Text('Multi Ads SDK Example'),
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            // Status Card
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Status',
-                      style: Theme.of(context).textTheme.titleLarge,
+      body: Column(
+        children: [
+          Expanded(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  // Status Card
+                  Card(
+                    child: Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Status',
+                            style: Theme.of(context).textTheme.titleLarge,
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            _statusMessage,
+                            style: Theme.of(context).textTheme.bodyMedium,
+                          ),
+                          const SizedBox(height: 16),
+                          // Provider Selection
+                          Text(
+                            'Provider',
+                            style: Theme.of(context).textTheme.titleMedium,
+                          ),
+                          const SizedBox(height: 8),
+                          SegmentedButton<AdProviderType>(
+                            segments: const [
+                              ButtonSegment<AdProviderType>(
+                                value: AdProviderType.admob,
+                                label: Text('AdMob'),
+                              ),
+                              ButtonSegment<AdProviderType>(
+                                value: AdProviderType.adx,
+                                label: Text('AdX'),
+                              ),
+                              ButtonSegment<AdProviderType>(
+                                value: AdProviderType.facebook,
+                                label: Text('Facebook'),
+                              ),
+                            ],
+                            selected: {_selectedProvider},
+                            onSelectionChanged:
+                                (Set<AdProviderType> newSelection) {
+                              setState(() {
+                                _selectedProvider = newSelection.first;
+                                _isInitialized = false;
+                                _statusMessage = 'Reinitializing...';
+                              });
+                              _initializeSDK();
+                            },
+                          ),
+                        ],
+                      ),
                     ),
-                    const SizedBox(height: 8),
-                    Text(
-                      _statusMessage,
-                      style: Theme.of(context).textTheme.bodyMedium,
-                    ),
-                    const SizedBox(height: 16),
-                    // Provider Selection
-                    Text(
-                      'Provider',
-                      style: Theme.of(context).textTheme.titleMedium,
-                    ),
-                    const SizedBox(height: 8),
-                    SegmentedButton<AdProviderType>(
-                      segments: const [
-                        ButtonSegment<AdProviderType>(
-                          value: AdProviderType.admob,
-                          label: Text('AdMob'),
-                        ),
-                        ButtonSegment<AdProviderType>(
-                          value: AdProviderType.adx,
-                          label: Text('AdX'),
-                        ),
-                        ButtonSegment<AdProviderType>(
-                          value: AdProviderType.facebook,
-                          label: Text('Facebook'),
-                        ),
-                      ],
-                      selected: {_selectedProvider},
-                      onSelectionChanged: (Set<AdProviderType> newSelection) {
-                        setState(() {
-                          _selectedProvider = newSelection.first;
-                          _isInitialized = false;
-                          _statusMessage = 'Reinitializing...';
-                        });
-                        _initializeSDK();
-                      },
-                    ),
-                  ],
-                ),
+                  ),
+                  const SizedBox(height: 16),
+                  // Interstitial Ads
+                  _buildSection(
+                    context,
+                    'Interstitial Ads',
+                    [
+                      _buildButton(
+                        context,
+                        'Load Interstitial',
+                        _loadInterstitial,
+                        enabled: _isInitialized,
+                      ),
+                      _buildButton(
+                        context,
+                        'Show Interstitial',
+                        _showInterstitial,
+                        enabled: _isInitialized,
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  // Rewarded Ads
+                  _buildSection(
+                    context,
+                    'Rewarded Ads',
+                    [
+                      _buildButton(
+                        context,
+                        'Load Rewarded',
+                        _loadRewarded,
+                        enabled: _isInitialized,
+                      ),
+                      _buildButton(
+                        context,
+                        'Show Rewarded',
+                        _showRewarded,
+                        enabled: _isInitialized,
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  // Rewarded Interstitial Ads
+                  _buildSection(
+                    context,
+                    'Rewarded Interstitial Ads',
+                    [
+                      _buildButton(
+                        context,
+                        'Load Rewarded Interstitial',
+                        _loadRewardedInterstitial,
+                        enabled: _isInitialized,
+                      ),
+                      _buildButton(
+                        context,
+                        'Show Rewarded Interstitial',
+                        _showRewardedInterstitial,
+                        enabled: _isInitialized,
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  // App Open Ads
+                  _buildSection(
+                    context,
+                    'App Open Ads',
+                    [
+                      _buildButton(
+                        context,
+                        'Load App Open',
+                        _loadAppOpen,
+                        enabled: _isInitialized,
+                      ),
+                      _buildButton(
+                        context,
+                        'Show App Open',
+                        _showAppOpen,
+                        enabled: _isInitialized,
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  // Banner Ads – banner appears in the view at bottom of screen
+                  _buildSection(
+                    context,
+                    'Banner Ads',
+                    [
+                      Text(
+                        'Banner appears in the slot at the bottom of the screen.',
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
+                      const SizedBox(height: 8),
+                      _buildButton(
+                        context,
+                        'Load Banner',
+                        _loadBanner,
+                        enabled: _isInitialized,
+                      ),
+                      _buildButton(
+                        context,
+                        'Show Banner',
+                        _showBanner,
+                        enabled: _isInitialized,
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  // Native Ads – view + buttons
+                  _buildSection(
+                    context,
+                    'Native Ads',
+                    [
+                      _buildNativeAdView(context),
+                      const SizedBox(height: 12),
+                      _buildButton(
+                        context,
+                        'Load Native',
+                        _loadNative,
+                        enabled: _isInitialized,
+                      ),
+                      _buildButton(
+                        context,
+                        'Show Native',
+                        _showNative,
+                        enabled: _isInitialized,
+                      ),
+                    ],
+                  ),
+                ],
               ),
             ),
-            const SizedBox(height: 16),
-            // Interstitial Ads
-            _buildSection(
-              context,
-              'Interstitial Ads',
-              [
-                _buildButton(
-                  context,
-                  'Load Interstitial',
-                  _loadInterstitial,
-                  enabled: _isInitialized,
-                ),
-                _buildButton(
-                  context,
-                  'Show Interstitial',
-                  _showInterstitial,
-                  enabled: _isInitialized,
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            // Rewarded Ads
-            _buildSection(
-              context,
-              'Rewarded Ads',
-              [
-                _buildButton(
-                  context,
-                  'Load Rewarded',
-                  _loadRewarded,
-                  enabled: _isInitialized,
-                ),
-                _buildButton(
-                  context,
-                  'Show Rewarded',
-                  _showRewarded,
-                  enabled: _isInitialized,
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            // Rewarded Interstitial Ads
-            _buildSection(
-              context,
-              'Rewarded Interstitial Ads',
-              [
-                _buildButton(
-                  context,
-                  'Load Rewarded Interstitial',
-                  _loadRewardedInterstitial,
-                  enabled: _isInitialized,
-                ),
-                _buildButton(
-                  context,
-                  'Show Rewarded Interstitial',
-                  _showRewardedInterstitial,
-                  enabled: _isInitialized,
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            // App Open Ads
-            _buildSection(
-              context,
-              'App Open Ads',
-              [
-                _buildButton(
-                  context,
-                  'Load App Open',
-                  _loadAppOpen,
-                  enabled: _isInitialized,
-                ),
-                _buildButton(
-                  context,
-                  'Show App Open',
-                  _showAppOpen,
-                  enabled: _isInitialized,
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            // Banner Ads
-            _buildSection(
-              context,
-              'Banner Ads',
-              [
-                _buildButton(
-                  context,
-                  'Load Banner',
-                  _loadBanner,
-                  enabled: _isInitialized,
-                ),
-                _buildButton(
-                  context,
-                  'Show Banner',
-                  _showBanner,
-                  enabled: _isInitialized,
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            // Native Ads
-            _buildSection(
-              context,
-              'Native Ads',
-              [
-                _buildButton(
-                  context,
-                  'Load Native',
-                  _loadNative,
-                  enabled: _isInitialized,
-                ),
-                _buildButton(
-                  context,
-                  'Show Native',
-                  _showNative,
-                  enabled: _isInitialized,
-                ),
-              ],
-            ),
-          ],
+          ),
+          // Fixed banner slot at bottom (same view as above, keeps banner visible)
+          _buildBannerAdView(context),
+        ],
+      ),
+    );
+  }
+
+  /// Banner ad view: platform view on Android and iOS, placeholder on other platforms.
+  Widget _buildBannerAdView(BuildContext context) {
+    const height = 50.0;
+    if (Platform.isAndroid) {
+      return SizedBox(
+        height: height,
+        child: AndroidView(
+          viewType: 'multi_ads_sdk/banner',
+          layoutDirection: TextDirection.ltr,
+          creationParams: null,
+          creationParamsCodec: null,
         ),
+      );
+    }
+    if (Platform.isIOS) {
+      return SizedBox(
+        height: height,
+        child: UiKitView(
+          viewType: 'multi_ads_sdk/banner',
+          layoutDirection: TextDirection.ltr,
+          creationParams: null,
+          creationParamsCodec: null,
+        ),
+      );
+    }
+    return Container(
+      height: height,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Text(
+        'Banner ad (Android / iOS only)',
+        style: Theme.of(context).textTheme.bodySmall,
+      ),
+    );
+  }
+
+  /// Native ad view: platform view on Android and iOS (like banner), placeholder on other platforms.
+  Widget _buildNativeAdView(BuildContext context) {
+    const height = 150.0;
+    if (Platform.isAndroid) {
+      return SizedBox(
+        height: height,
+        child: AndroidView(
+          viewType: 'multi_ads_sdk/native',
+          layoutDirection: TextDirection.ltr,
+          creationParams: null,
+          creationParamsCodec: null,
+        ),
+      );
+    }
+    if (Platform.isIOS) {
+      return SizedBox(
+        height: height,
+        child: UiKitView(
+          viewType: 'multi_ads_sdk/native',
+          layoutDirection: TextDirection.ltr,
+          creationParams: null,
+          creationParamsCodec: null,
+        ),
+      );
+    }
+    return Container(
+      height: height,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Text(
+        'Native ad (Android / iOS only)',
+        style: Theme.of(context).textTheme.bodySmall,
       ),
     );
   }
