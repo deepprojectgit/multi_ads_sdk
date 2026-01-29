@@ -24,6 +24,10 @@ example/.flutter-plugins
 example/.flutter-plugins-dependencies
 example/.packages
 
+# Example Android: local paths and generated files (checked in but gitignored; exclude from package)
+example/android/local.properties
+example/android/app/src/main/java/io/flutter/plugins/GeneratedPluginRegistrant.java
+
 # Documentation
 doc/
 
