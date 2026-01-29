@@ -138,7 +138,8 @@ class _AdsExamplePageState extends State<AdsExamplePage> {
       _log('Loading app open ad...');
       // Use test ad unit ID - replace with your own
       await MultiAdsManager.loadAppOpen(
-        adUnitId: 'ca-app-pub-3940256099942544/9257395921', // App Open test ad unit
+        adUnitId:
+            'ca-app-pub-3940256099942544/9257395921', // App Open test ad unit
       );
       setState(() {
         _statusMessage = 'App open ad loaded';
