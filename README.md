@@ -377,6 +377,18 @@ enum AdType {
 2. **Build errors**: Ensure iOS deployment target is 12.0 or higher
 3. **Ad not loading**: Check `Info.plist` for AdMob App ID
 
+## 📦 Publishing to pub.dev
+
+To clear the "2 checked-in files are ignored by .gitignore" warning when running `dart pub publish --dry-run`, stop tracking those files (they remain on disk and are already in `.gitignore`):
+
+```bash
+git rm --cached example/android/local.properties
+git rm --cached "example/android/app/src/main/java/io/flutter/plugins/GeneratedPluginRegistrant.java"
+git commit -m "chore: stop tracking example Android generated/local files"
+```
+
+Then run `dart pub publish --dry-run` again; the warning should be gone.
+
 ## 📄 License
 
 This project is licensed under the MIT License.
