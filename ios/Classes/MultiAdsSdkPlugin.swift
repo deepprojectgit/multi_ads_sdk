@@ -98,18 +98,18 @@ public class MultiAdsSdkPlugin: NSObject, FlutterPlugin {
             mediaView.translatesAutoresizingMaskIntoConstraints = false
             root.addSubview(mediaView)
             let titleLabel = UILabel()
-            titleLabel.text = ad.advertiserName
+            titleLabel.text = ad.advertiserName ?? ""
             titleLabel.font = .boldSystemFont(ofSize: 16)
             titleLabel.translatesAutoresizingMaskIntoConstraints = false
             root.addSubview(titleLabel)
             let bodyLabel = UILabel()
-            bodyLabel.text = ad.bodyText
+            bodyLabel.text = ad.bodyText ?? ""
             bodyLabel.font = .systemFont(ofSize: 14)
             bodyLabel.numberOfLines = 2
             bodyLabel.translatesAutoresizingMaskIntoConstraints = false
             root.addSubview(bodyLabel)
             let ctaButton = UIButton(type: .system)
-            ctaButton.setTitle(ad.callToAction, for: .normal)
+            ctaButton.setTitle(ad.callToAction ?? "Learn More", for: .normal)
             ctaButton.translatesAutoresizingMaskIntoConstraints = false
             root.addSubview(ctaButton)
             NSLayoutConstraint.activate([
@@ -194,7 +194,7 @@ public class MultiAdsSdkPlugin: NSObject, FlutterPlugin {
         titleStack.axis = .vertical
         titleStack.spacing = 4
         let headlineLabel = UILabel()
-        headlineLabel.text = ad.headline
+        headlineLabel.text = ad.headline ?? ""
         headlineLabel.font = .boldSystemFont(ofSize: isSmall ? 15 : 16)
         headlineLabel.numberOfLines = 1
         nativeAdView.headlineView = headlineLabel
@@ -224,7 +224,7 @@ public class MultiAdsSdkPlugin: NSObject, FlutterPlugin {
         // Body (medium only) - "Stay up to date with your Ads..."
         if !isSmall {
             let bodyLabel = UILabel()
-            bodyLabel.text = ad.body
+            bodyLabel.text = ad.body ?? ""
             bodyLabel.font = .systemFont(ofSize: 14)
             bodyLabel.numberOfLines = 2
             nativeAdView.bodyView = bodyLabel
@@ -240,7 +240,7 @@ public class MultiAdsSdkPlugin: NSObject, FlutterPlugin {
         
         // Full-width INSTALL button at bottom (matches reference for both platforms)
         let ctaButton = UIButton(type: .system)
-        ctaButton.setTitle(ad.callToAction, for: .normal)
+        ctaButton.setTitle(ad.callToAction ?? "Learn More", for: .normal)
         ctaButton.titleLabel?.font = .systemFont(ofSize: isSmall ? 15 : 16, weight: .medium)
         ctaButton.backgroundColor = UIColor(red: 0.10, green: 0.45, blue: 0.91, alpha: 1)
         ctaButton.setTitleColor(.white, for: .normal)
@@ -451,7 +451,8 @@ public class MultiAdsSdkPlugin: NSObject, FlutterPlugin {
             }
             nativeLoadResult = result
             let request = GADRequest()
-            let loader = GADAdLoader(adUnitID: adUnitId, rootViewController: nil, adTypes: [.native], options: nil)
+            let rootVC = getRootViewController()
+            let loader = GADAdLoader(adUnitID: adUnitId, rootViewController: rootVC, adTypes: [.native], options: nil)
             loader.delegate = self
             admobNativeAdLoader = loader
             loader.load(request)
@@ -534,7 +535,8 @@ public class MultiAdsSdkPlugin: NSObject, FlutterPlugin {
                 return
             }
             bannerLoadResult = result
-            facebookBannerAd = FBAdView(placementID: adUnitId, adSize: kFBAdSizeHeight50Banner, rootViewController: nil)
+            let rootVC = getRootViewController()
+            facebookBannerAd = FBAdView(placementID: adUnitId, adSize: kFBAdSizeHeight50Banner, rootViewController: rootVC)
             facebookBannerAd?.delegate = self
             facebookBannerAd?.loadAd()
             
@@ -553,12 +555,29 @@ public class MultiAdsSdkPlugin: NSObject, FlutterPlugin {
         }
     }
     
+    /// Gets the root view controller for presenting ads. Works on iOS 13+ (scene-based) and fallback to windows.
+    private func getRootViewController() -> UIViewController? {
+        let scene = UIApplication.shared.connectedScenes
+            .compactMap { $0 as? UIWindowScene }
+            .first { $0.activationState == .foregroundActive }
+        let window = scene?.windows.first { $0.isKeyWindow } ?? scene?.windows.first
+        var root = window?.rootViewController
+        while let presented = root?.presentedViewController {
+            root = presented
+        }
+        if root == nil {
+            root = UIApplication.shared.windows.first { $0.isKeyWindow }?.rootViewController
+                ?? UIApplication.shared.windows.first?.rootViewController
+        }
+        return root
+    }
+
     private func showAd(providerType: String, adType: String, result: @escaping FlutterResult) {
-        guard let rootViewController = UIApplication.shared.windows.first?.rootViewController else {
+        guard let rootViewController = getRootViewController() else {
             result(FlutterError(code: "NO_ROOT_VIEW_CONTROLLER", message: "Root view controller not available", details: nil))
             return
         }
-        
+
         switch providerType {
         case "admob":
             showAdMobAd(adType: adType, rootViewController: rootViewController, result: result)

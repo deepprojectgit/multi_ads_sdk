@@ -23,8 +23,4 @@ class NativeAdViewFactory: NSObject, FlutterPlatformViewFactory {
         }
         return NativeAdPlatformView(frame: frame, plugin: plugin, size: size)
     }
-    
-    func createArgsCodec() -> (FlutterMessageCodec & NSObjectProtocol)? {
-        return FlutterStandardMessageCodec.sharedInstance()
-    }
 }

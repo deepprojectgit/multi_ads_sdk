@@ -37,7 +37,7 @@ Add this package to your `pubspec.yaml`:
 
 ```yaml
 dependencies:
-  multi_ads_sdk: ^1.0.5
+  multi_ads_sdk: ^1.0.6
 ```
 
 Then run:

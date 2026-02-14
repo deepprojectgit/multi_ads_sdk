@@ -20,8 +20,4 @@ class BannerAdViewFactory: NSObject, FlutterPlatformViewFactory {
         }
         return BannerAdPlatformView(frame: frame, plugin: plugin)
     }
-    
-    func createArgsCodec() -> (FlutterMessageCodec & NSObjectProtocol)? {
-        return FlutterStandardMessageCodec.sharedInstance()
-    }
 }
