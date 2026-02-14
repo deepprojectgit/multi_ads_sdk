@@ -50,7 +50,7 @@ PODS:
   - GoogleUtilities/Reachability (7.13.3):
     - GoogleUtilities/Logger
     - GoogleUtilities/Privacy
-  - multi_ads_sdk (1.0.5):
+  - multi_ads_sdk (1.0.6):
     - FBAudienceNetwork (~> 6.16)
     - Flutter
     - Google-Mobile-Ads-SDK (~> 10.0)
@@ -88,10 +88,10 @@ SPEC CHECKSUMS:
   GoogleAppMeasurement: f9de05ee17401e3355f68e8fc8b5064d429f5918
   GoogleUserMessagingPlatform: befe603da6501006420c206222acd449bba45a9c
   GoogleUtilities: ea963c370a38a8069cc5f7ba4ca849a60b6d7d15
-  multi_ads_sdk: 2d6b2a4bd52114d16740782aac8dbd375af1214e
+  multi_ads_sdk: 8be369e37695c1873a88b17597afeb474ba5b0e6
   nanopb: 438bc412db1928dac798aa6fd75726007be04262
   PromisesObjC: f5707f49cb48b9636751c5b2e7d227e43fba9f47
 
-PODFILE CHECKSUM: 16bf0dba39c3aae53bd8cecd9f32dd67127b2908
+PODFILE CHECKSUM: a7d18637854637e4fed834cda39300d26a794491
 
 COCOAPODS: 1.16.2

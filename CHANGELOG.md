@@ -5,16 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.7] - 2026-02-14
+
+### Changed
+- **iOS**: Minimum deployment target raised to iOS 15.0 (from 12.0). Plugin podspec and README updated accordingly.
+
 ## [1.0.6] - 2026-02-14
+
+### Changed
+- **iOS**: Minimum deployment target raised to iOS 15.0 (from 13.0).
+- iOS podspec and Swift source files updated for stability.
 
 ### Fixed
 - **iOS**: Added GADApplicationIdentifier to example Info.plist (required for Google Mobile Ads SDK).
 - **iOS**: Replaced deprecated `UIApplication.shared.windows` with `connectedScenes` for root view controller on iOS 13+.
 - **iOS**: Nil-safety for native ad properties (AdMob and Facebook).
-- **iOS**: Pass root view controller to GADAdLoader and FBAdView instead of nil
-
-### Changed
-- iOS podspec and Swift source files updated for stability.
+- **iOS**: Pass root view controller to GADAdLoader and FBAdView instead of nil.
 
 ## [1.0.5] - 2026-01-29
 

@@ -37,7 +37,7 @@ Add this package to your `pubspec.yaml`:
 
 ```yaml
 dependencies:
-  multi_ads_sdk: ^1.0.6
+  multi_ads_sdk: ^1.0.7
 ```
 
 Then run:
@@ -91,7 +91,7 @@ android {
 1. **Update `ios/Podfile`**:
 
 ```ruby
-platform :ios, '13.0'
+platform :ios, '15.0'
 ```
 
 2. **Update `ios/Runner/Info.plist`**:
@@ -374,7 +374,7 @@ enum AdType {
 ### iOS Issues
 
 1. **Pod install errors**: Run `pod repo update` then `pod install`
-2. **Build errors**: Ensure iOS deployment target is 13.0 or higher
+2. **Build errors**: Ensure iOS deployment target is 15.0 or higher
 3. **Ad not loading**: Check `Info.plist` for AdMob App ID
 4. **Google-Mobile-Ads-SDK / nanopb resolution**: If you see dependency resolution errors involving `GoogleAppMeasurement` or `nanopb` (e.g. when using Firebase alongside this SDK), try:
    - From your app root: `cd ios`, remove `Podfile.lock` and `Pods` folder, then run `pod install --repo-update`.
