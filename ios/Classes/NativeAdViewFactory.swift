@@ -2,11 +2,14 @@ import Flutter
 import UIKit
 
 /// Factory for creating native ad platform views.
+/// - Parameter size: "small" or "medium" for the native ad layout.
 class NativeAdViewFactory: NSObject, FlutterPlatformViewFactory {
     private weak var plugin: MultiAdsSdkPlugin?
+    private let size: String
     
-    init(plugin: MultiAdsSdkPlugin) {
+    init(plugin: MultiAdsSdkPlugin, size: String = "medium") {
         self.plugin = plugin
+        self.size = size
         super.init()
     }
     
@@ -18,7 +21,7 @@ class NativeAdViewFactory: NSObject, FlutterPlatformViewFactory {
         guard let plugin = plugin else {
             fatalError("NativeAdViewFactory requires a plugin instance")
         }
-        return NativeAdPlatformView(frame: frame, plugin: plugin)
+        return NativeAdPlatformView(frame: frame, plugin: plugin, size: size)
     }
     
     func createArgsCodec() -> (FlutterMessageCodec & NSObjectProtocol)? {

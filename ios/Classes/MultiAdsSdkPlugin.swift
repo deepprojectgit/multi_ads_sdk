@@ -28,8 +28,9 @@ public class MultiAdsSdkPlugin: NSObject, FlutterPlugin {
     
     // Platform view container for banner (used when Flutter embeds the banner widget)
     private var bannerContainer: UIView?
-    // Platform view container for native ad (used when Flutter embeds the native ad widget)
-    private var nativeContainer: UIView?
+    // Platform view containers for native ad (small and medium layouts)
+    private var nativeContainerSmall: UIView?
+    private var nativeContainerMedium: UIView?
     private var currentProviderType: String?
     private var bannerLoadResult: FlutterResult?
     private var nativeLoadResult: FlutterResult?
@@ -70,69 +71,26 @@ public class MultiAdsSdkPlugin: NSObject, FlutterPlugin {
     }
     
     /// Called by NativeAdPlatformView when the platform view is created or disposed.
-    func setNativeContainer(_ view: UIView?) {
-        nativeContainer?.subviews.forEach { $0.removeFromSuperview() }
-        nativeContainer = view
-        if view != nil {
-            attachNativeToContainer()
+    func setNativeContainer(_ view: UIView?, size: String) {
+        switch size {
+        case "small":
+            nativeContainerSmall?.subviews.forEach { $0.removeFromSuperview() }
+            nativeContainerSmall = view
+        default:
+            nativeContainerMedium?.subviews.forEach { $0.removeFromSuperview() }
+            nativeContainerMedium = view
         }
+        if view != nil { attachNativeToContainer() }
     }
     
     private func attachNativeToContainer() {
-        guard let container = nativeContainer else { return }
-        container.subviews.forEach { $0.removeFromSuperview() }
         if currentProviderType == "admob" || currentProviderType == "adx", let ad = admobNativeAd {
-            let nativeAdView = GADNativeAdView()
-            nativeAdView.translatesAutoresizingMaskIntoConstraints = false
-            nativeAdView.backgroundColor = .systemBackground
-            let stack = UIStackView()
-            stack.axis = .horizontal
-            stack.spacing = 12
-            stack.translatesAutoresizingMaskIntoConstraints = false
-            if let icon = ad.icon, let image = icon.image {
-                let iconView = UIImageView(image: image)
-                iconView.contentMode = .scaleAspectFit
-                iconView.widthAnchor.constraint(equalToConstant: 48).isActive = true
-                iconView.heightAnchor.constraint(equalToConstant: 48).isActive = true
-                nativeAdView.iconView = iconView
-                stack.addArrangedSubview(iconView)
-            }
-            let textStack = UIStackView()
-            textStack.axis = .vertical
-            textStack.spacing = 4
-            let headlineLabel = UILabel()
-            headlineLabel.text = ad.headline
-            headlineLabel.font = .boldSystemFont(ofSize: 16)
-            headlineLabel.numberOfLines = 1
-            nativeAdView.headlineView = headlineLabel
-            textStack.addArrangedSubview(headlineLabel)
-            let bodyLabel = UILabel()
-            bodyLabel.text = ad.body
-            bodyLabel.font = .systemFont(ofSize: 14)
-            bodyLabel.numberOfLines = 2
-            nativeAdView.bodyView = bodyLabel
-            textStack.addArrangedSubview(bodyLabel)
-            let ctaButton = UIButton(type: .system)
-            ctaButton.setTitle(ad.callToAction, for: .normal)
-            nativeAdView.callToActionView = ctaButton
-            textStack.addArrangedSubview(ctaButton)
-            stack.addArrangedSubview(textStack)
-            nativeAdView.addSubview(stack)
-            NSLayoutConstraint.activate([
-                stack.leadingAnchor.constraint(equalTo: nativeAdView.leadingAnchor, constant: 12),
-                stack.trailingAnchor.constraint(equalTo: nativeAdView.trailingAnchor, constant: -12),
-                stack.topAnchor.constraint(equalTo: nativeAdView.topAnchor, constant: 12),
-                stack.bottomAnchor.constraint(equalTo: nativeAdView.bottomAnchor, constant: -12)
-            ])
-            nativeAdView.nativeAd = ad
-            container.addSubview(nativeAdView)
-            NSLayoutConstraint.activate([
-                nativeAdView.leadingAnchor.constraint(equalTo: container.leadingAnchor),
-                nativeAdView.trailingAnchor.constraint(equalTo: container.trailingAnchor),
-                nativeAdView.topAnchor.constraint(equalTo: container.topAnchor),
-                nativeAdView.bottomAnchor.constraint(equalTo: container.bottomAnchor)
-            ])
+            if let c = nativeContainerSmall { buildAdMobNativeView(container: c, ad: ad, size: "small") }
+            if let c = nativeContainerMedium { buildAdMobNativeView(container: c, ad: ad, size: "medium") }
         } else if currentProviderType == "facebook", let ad = facebookNativeAd {
+            let container = nativeContainerMedium ?? nativeContainerSmall
+            guard let c = container else { return }
+            c.subviews.forEach { $0.removeFromSuperview() }
             let root = UIView()
             root.translatesAutoresizingMaskIntoConstraints = false
             root.backgroundColor = .systemBackground
@@ -170,14 +128,141 @@ public class MultiAdsSdkPlugin: NSObject, FlutterPlugin {
                 ctaButton.bottomAnchor.constraint(equalTo: root.bottomAnchor, constant: -12)
             ])
             ad.registerView(forInteraction: root, mediaView: mediaView, iconView: nil, viewController: nil)
-            container.addSubview(root)
+            c.addSubview(root)
             NSLayoutConstraint.activate([
-                root.leadingAnchor.constraint(equalTo: container.leadingAnchor),
-                root.trailingAnchor.constraint(equalTo: container.trailingAnchor),
-                root.topAnchor.constraint(equalTo: container.topAnchor),
-                root.bottomAnchor.constraint(equalTo: container.bottomAnchor)
+                root.leadingAnchor.constraint(equalTo: c.leadingAnchor),
+                root.trailingAnchor.constraint(equalTo: c.trailingAnchor),
+                root.topAnchor.constraint(equalTo: c.topAnchor),
+                root.bottomAnchor.constraint(equalTo: c.bottomAnchor)
             ])
         }
+    }
+    
+    private func buildAdMobNativeView(container: UIView, ad: GADNativeAd, size: String) {
+        container.subviews.forEach { $0.removeFromSuperview() }
+        let nativeAdView = GADNativeAdView()
+        nativeAdView.translatesAutoresizingMaskIntoConstraints = false
+        nativeAdView.backgroundColor = .clear
+        var lastAnchor = nativeAdView.topAnchor
+        let padding: CGFloat = 12
+        let isSmall = (size == "small")
+        
+        // Media at top (medium: show; small: optional / hidden if no media)
+        if !isSmall {
+            let mediaView = GADMediaView()
+            mediaView.translatesAutoresizingMaskIntoConstraints = false
+            nativeAdView.mediaView = mediaView
+            nativeAdView.addSubview(mediaView)
+            let hasMedia = ad.mediaContent != nil
+            let mediaHeight: CGFloat = hasMedia ? 140 : 0
+            mediaView.isHidden = !hasMedia
+            NSLayoutConstraint.activate([
+                mediaView.leadingAnchor.constraint(equalTo: nativeAdView.leadingAnchor, constant: padding),
+                mediaView.trailingAnchor.constraint(equalTo: nativeAdView.trailingAnchor, constant: -padding),
+                mediaView.topAnchor.constraint(equalTo: lastAnchor, constant: padding),
+                mediaView.heightAnchor.constraint(equalToConstant: mediaHeight)
+            ])
+            if hasMedia { lastAnchor = mediaView.bottomAnchor }
+        }
+        
+        // Row: Icon + Ad badge + Headline + Star rating (matches reference)
+        let rowStack = UIStackView()
+        rowStack.axis = .horizontal
+        rowStack.spacing = 8
+        rowStack.alignment = .center
+        rowStack.translatesAutoresizingMaskIntoConstraints = false
+        if let icon = ad.icon, let image = icon.image {
+            let iconView = UIImageView(image: image)
+            iconView.contentMode = .scaleAspectFit
+            iconView.widthAnchor.constraint(equalToConstant: 48).isActive = true
+            iconView.heightAnchor.constraint(equalToConstant: 48).isActive = true
+            nativeAdView.iconView = iconView
+            rowStack.addArrangedSubview(iconView)
+        }
+        let adBadge = UILabel()
+        adBadge.text = "Ad"
+        adBadge.font = .boldSystemFont(ofSize: 11)
+        adBadge.textColor = UIColor(red: 0.18, green: 0.49, blue: 0.20, alpha: 1)
+        adBadge.backgroundColor = UIColor(red: 0.91, green: 0.96, blue: 0.91, alpha: 1)
+        adBadge.layer.cornerRadius = 2
+        adBadge.clipsToBounds = true
+        adBadge.textAlignment = .center
+        adBadge.translatesAutoresizingMaskIntoConstraints = false
+        adBadge.widthAnchor.constraint(equalToConstant: 24).isActive = true
+        rowStack.addArrangedSubview(adBadge)
+        let titleStack = UIStackView()
+        titleStack.axis = .vertical
+        titleStack.spacing = 4
+        let headlineLabel = UILabel()
+        headlineLabel.text = ad.headline
+        headlineLabel.font = .boldSystemFont(ofSize: isSmall ? 15 : 16)
+        headlineLabel.numberOfLines = 1
+        nativeAdView.headlineView = headlineLabel
+        titleStack.addArrangedSubview(headlineLabel)
+        let starRatingLabel = UILabel()
+        starRatingLabel.font = .systemFont(ofSize: 12)
+        starRatingLabel.textColor = .systemGray
+        if let rating = ad.starRating?.doubleValue, rating > 0 {
+            let full = Int(rating)
+            let half = (rating - Double(full)) >= 0.5 ? 1 : 0
+            let empty = 5 - full - half
+            starRatingLabel.text = String(repeating: "★", count: full) + (half > 0 ? "½" : "") + String(repeating: "☆", count: empty)
+            nativeAdView.starRatingView = starRatingLabel
+        } else {
+            starRatingLabel.isHidden = true
+        }
+        titleStack.addArrangedSubview(starRatingLabel)
+        rowStack.addArrangedSubview(titleStack)
+        nativeAdView.addSubview(rowStack)
+        NSLayoutConstraint.activate([
+            rowStack.leadingAnchor.constraint(equalTo: nativeAdView.leadingAnchor, constant: padding),
+            rowStack.trailingAnchor.constraint(equalTo: nativeAdView.trailingAnchor, constant: -padding),
+            rowStack.topAnchor.constraint(equalTo: lastAnchor, constant: padding)
+        ])
+        lastAnchor = rowStack.bottomAnchor
+        
+        // Body (medium only) - "Stay up to date with your Ads..."
+        if !isSmall {
+            let bodyLabel = UILabel()
+            bodyLabel.text = ad.body
+            bodyLabel.font = .systemFont(ofSize: 14)
+            bodyLabel.numberOfLines = 2
+            nativeAdView.bodyView = bodyLabel
+            bodyLabel.translatesAutoresizingMaskIntoConstraints = false
+            nativeAdView.addSubview(bodyLabel)
+            NSLayoutConstraint.activate([
+                bodyLabel.leadingAnchor.constraint(equalTo: nativeAdView.leadingAnchor, constant: padding),
+                bodyLabel.trailingAnchor.constraint(equalTo: nativeAdView.trailingAnchor, constant: -padding),
+                bodyLabel.topAnchor.constraint(equalTo: lastAnchor, constant: 8)
+            ])
+            lastAnchor = bodyLabel.bottomAnchor
+        }
+        
+        // Full-width INSTALL button at bottom (matches reference for both platforms)
+        let ctaButton = UIButton(type: .system)
+        ctaButton.setTitle(ad.callToAction, for: .normal)
+        ctaButton.titleLabel?.font = .systemFont(ofSize: isSmall ? 15 : 16, weight: .medium)
+        ctaButton.backgroundColor = UIColor(red: 0.10, green: 0.45, blue: 0.91, alpha: 1)
+        ctaButton.setTitleColor(.white, for: .normal)
+        ctaButton.layer.cornerRadius = 8
+        nativeAdView.callToActionView = ctaButton
+        ctaButton.translatesAutoresizingMaskIntoConstraints = false
+        nativeAdView.addSubview(ctaButton)
+        NSLayoutConstraint.activate([
+            ctaButton.leadingAnchor.constraint(equalTo: nativeAdView.leadingAnchor, constant: padding),
+            ctaButton.trailingAnchor.constraint(equalTo: nativeAdView.trailingAnchor, constant: -padding),
+            ctaButton.topAnchor.constraint(equalTo: lastAnchor, constant: 12),
+            ctaButton.heightAnchor.constraint(equalToConstant: isSmall ? 48 : 52),
+            ctaButton.bottomAnchor.constraint(equalTo: nativeAdView.bottomAnchor, constant: -padding)
+        ])
+        nativeAdView.nativeAd = ad
+        container.addSubview(nativeAdView)
+        NSLayoutConstraint.activate([
+            nativeAdView.leadingAnchor.constraint(equalTo: container.leadingAnchor),
+            nativeAdView.trailingAnchor.constraint(equalTo: container.trailingAnchor),
+            nativeAdView.topAnchor.constraint(equalTo: container.topAnchor),
+            nativeAdView.bottomAnchor.constraint(equalTo: container.bottomAnchor)
+        ])
     }
     
     init(channel: FlutterMethodChannel) {
@@ -194,8 +279,16 @@ public class MultiAdsSdkPlugin: NSObject, FlutterPlugin {
             withId: "multi_ads_sdk/banner"
         )
         registrar.register(
-            NativeAdViewFactory(plugin: instance),
+            NativeAdViewFactory(plugin: instance, size: "medium"),
             withId: "multi_ads_sdk/native"
+        )
+        registrar.register(
+            NativeAdViewFactory(plugin: instance, size: "small"),
+            withId: "multi_ads_sdk/native_small"
+        )
+        registrar.register(
+            NativeAdViewFactory(plugin: instance, size: "medium"),
+            withId: "multi_ads_sdk/native_medium"
         )
     }
     

@@ -22,8 +22,10 @@ import com.google.android.gms.ads.rewardedinterstitial.RewardedInterstitialAd
 import com.google.android.gms.ads.rewardedinterstitial.RewardedInterstitialAdLoadCallback
 import com.google.android.gms.ads.appopen.AppOpenAd
 import com.google.android.gms.ads.appopen.AppOpenAd.AppOpenAdLoadCallback
+import com.google.android.gms.ads.nativead.MediaView
 import com.google.android.gms.ads.nativead.NativeAd
 import com.google.android.gms.ads.nativead.NativeAdView
+import android.widget.RatingBar
 import com.multiads.sdk.R
 import io.flutter.embedding.engine.plugins.FlutterPlugin
 import io.flutter.embedding.engine.plugins.activity.ActivityAware
@@ -61,8 +63,9 @@ class MultiAdsSdkPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
 
     // Platform view container for banner (used when Flutter embeds the banner widget)
     private var bannerContainer: FrameLayout? = null
-    // Platform view container for native ad (used when Flutter embeds the native ad widget)
-    private var nativeContainer: FrameLayout? = null
+    // Platform view containers for native ad (small and medium layouts)
+    private var nativeContainerSmall: FrameLayout? = null
+    private var nativeContainerMedium: FrameLayout? = null
     private var currentProviderType: String? = null
 
     /** Called by BannerAdViewFactory when the platform view is created or disposed. */
@@ -89,38 +92,32 @@ class MultiAdsSdkPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
     }
 
     /** Called by NativeAdViewFactory when the platform view is created or disposed. */
-    fun setNativeContainer(container: FrameLayout?) {
-        if (nativeContainer != null && nativeContainer != container) {
-            nativeContainer?.removeAllViews()
+    fun setNativeContainer(container: FrameLayout?, size: String) {
+        when (size) {
+            "small" -> {
+                if (nativeContainerSmall != null && nativeContainerSmall != container) nativeContainerSmall?.removeAllViews()
+                nativeContainerSmall = container
+            }
+            else -> {
+                if (nativeContainerMedium != null && nativeContainerMedium != container) nativeContainerMedium?.removeAllViews()
+                nativeContainerMedium = container
+            }
         }
-        nativeContainer = container
-        if (container != null) {
-            attachNativeToContainer()
-        }
+        if (container != null) attachNativeToContainer()
     }
 
     private fun attachNativeToContainer() {
-        val container = nativeContainer ?: return
         val ctx = context ?: return
-        container.removeAllViews()
         when (currentProviderType) {
             "admob", "adx" -> {
                 val ad = admobNativeAd ?: return
-                val inflater = LayoutInflater.from(ctx)
-                val adView = inflater.inflate(R.layout.native_ad_layout, container, false) as NativeAdView
-                (adView.findViewById<TextView>(R.id.native_ad_headline)).text = ad.headline ?: ""
-                adView.headlineView = adView.findViewById(R.id.native_ad_headline)
-                adView.bodyView = adView.findViewById(R.id.native_ad_body)
-                (adView.bodyView as? TextView)?.text = ad.body ?: ""
-                adView.callToActionView = adView.findViewById(R.id.native_ad_call_to_action)
-                (adView.callToActionView as? Button)?.text = ad.callToAction ?: ""
-                adView.iconView = adView.findViewById(R.id.native_ad_icon)
-                ad.icon?.drawable?.let { (adView.iconView as? ImageView)?.setImageDrawable(it) }
-                adView.setNativeAd(ad)
-                container.addView(adView)
+                if (nativeContainerSmall != null) attachAdMobNativeTo(nativeContainerSmall!!, R.layout.native_ad_layout_small, ad)
+                if (nativeContainerMedium != null) attachAdMobNativeTo(nativeContainerMedium!!, R.layout.native_ad_layout_medium, ad)
             }
             "facebook" -> {
                 val ad = facebookNativeAd ?: return
+                val targetContainer = nativeContainerMedium ?: nativeContainerSmall ?: return
+                targetContainer.removeAllViews()
                 val root = LinearLayout(ctx).apply {
                     orientation = LinearLayout.VERTICAL
                     setPadding(dpToPx(12), dpToPx(12), dpToPx(12), dpToPx(12))
@@ -134,10 +131,40 @@ class MultiAdsSdkPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
                 val ctaButton = Button(ctx).apply { text = ad.adCallToAction; setPadding(dpToPx(16), dpToPx(8), dpToPx(16), dpToPx(8)) }
                 root.addView(ctaButton, LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT).apply { topMargin = dpToPx(8) })
                 ad.registerViewForInteraction(root, mediaView)
-                container.addView(root)
+                targetContainer.addView(root)
             }
             else -> { }
         }
+    }
+
+    private fun attachAdMobNativeTo(container: FrameLayout, layoutResId: Int, ad: NativeAd) {
+        val ctx = context ?: return
+        container.removeAllViews()
+        val inflater = LayoutInflater.from(ctx)
+        val adView = inflater.inflate(layoutResId, container, false) as NativeAdView
+        adView.headlineView = adView.findViewById(R.id.native_ad_headline)
+        (adView.headlineView as? TextView)?.text = ad.headline ?: ""
+        adView.callToActionView = adView.findViewById(R.id.native_ad_call_to_action)
+        (adView.callToActionView as? Button)?.text = ad.callToAction ?: ""
+        adView.iconView = adView.findViewById(R.id.native_ad_icon)
+        ad.icon?.drawable?.let { (adView.iconView as? ImageView)?.setImageDrawable(it) }
+        adView.bodyView = adView.findViewById(R.id.native_ad_body)
+        (adView.bodyView as? TextView)?.text = ad.body ?: ""
+        val starRatingView = adView.findViewById<RatingBar>(R.id.native_ad_star_rating)
+        adView.starRatingView = starRatingView
+        if (ad.starRating != null) {
+            starRatingView.visibility = android.view.View.VISIBLE
+            starRatingView.rating = ad.starRating!!.toFloat()
+        } else {
+            starRatingView.visibility = android.view.View.GONE
+        }
+        val mediaView = adView.findViewById<MediaView>(R.id.native_ad_media)
+        if (mediaView != null) {
+            adView.mediaView = mediaView
+            mediaView.visibility = if (ad.mediaContent != null) android.view.View.VISIBLE else android.view.View.GONE
+        }
+        adView.setNativeAd(ad)
+        container.addView(adView)
     }
 
     private fun dpToPx(dp: Int): Int {
@@ -155,7 +182,15 @@ class MultiAdsSdkPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
         )
         flutterPluginBinding.platformViewRegistry.registerViewFactory(
             "multi_ads_sdk/native",
-            NativeAdViewFactory(this)
+            NativeAdViewFactory(this, "medium")
+        )
+        flutterPluginBinding.platformViewRegistry.registerViewFactory(
+            "multi_ads_sdk/native_small",
+            NativeAdViewFactory(this, "small")
+        )
+        flutterPluginBinding.platformViewRegistry.registerViewFactory(
+            "multi_ads_sdk/native_medium",
+            NativeAdViewFactory(this, "medium")
         )
     }
 

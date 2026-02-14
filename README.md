@@ -37,7 +37,7 @@ Add this package to your `pubspec.yaml`:
 
 ```yaml
 dependencies:
-  multi_ads_sdk: ^1.0.2
+  multi_ads_sdk: ^1.0.3
 ```
 
 Then run:
@@ -377,6 +377,30 @@ enum AdType {
 2. **Build errors**: Ensure iOS deployment target is 12.0 or higher
 3. **Ad not loading**: Check `Info.plist` for AdMob App ID
 
+## 📋 Ads failure & exception logging
+
+The SDK logs ad load failures and exceptions via **`AdsLogger`**:
+
+- **Ad failed to load** (platform `onAdFailedToLoad`): logged with ad type and error message.
+- **Exceptions** (init, load, show, connectivity): logged with message, exception, and stack trace.
+
+In debug mode, all of these are printed to the console. You can set a **custom logger** (e.g. for Crashlytics) so failures are reported in production:
+
+```dart
+import 'package:multi_ads_sdk/multi_ads_sdk.dart';
+
+void main() {
+  AdsLogger.setLogger((adType, message, [error, stackTrace]) {
+    // Send to your crash reporting / analytics
+    FirebaseCrashlytics.instance.log('Ad: $adType - $message');
+    if (error != null) {
+      FirebaseCrashlytics.instance.recordError(error, stackTrace);
+    }
+  });
+  runApp(MyApp());
+}
+```
+
 ## 📦 Publishing to pub.dev
 
 To clear the "2 checked-in files are ignored by .gitignore" warning when running `dart pub publish --dry-run`, stop tracking those files (they remain on disk and are already in `.gitignore`):
@@ -388,18 +412,6 @@ git commit -m "chore: stop tracking example Android generated/local files"
 ```
 
 Then run `dart pub publish --dry-run` again; the warning should be gone.
-
-## 📄 License
-
-This project is licensed under the MIT License.
-
-## 🤝 Contributing
-
-Contributions are welcome! Please feel free to submit a Pull Request.
-
-## 📞 Support
-
-For issues and questions, please open an issue on GitHub.
 
 ---
 

@@ -1,6 +1,8 @@
 import 'package:flutter/services.dart';
+
 import '../core/ad_provider_type.dart';
 import '../core/ad_type.dart';
+import '../core/ads_logger.dart';
 
 /// Platform service for communicating with native code via MethodChannel
 ///
@@ -21,7 +23,13 @@ class PlatformAdService {
       await _channel.invokeMethod('initProvider', {
         'providerType': providerType.name,
       });
-    } on PlatformException catch (e) {
+    } on PlatformException catch (e, stackTrace) {
+      AdsLogger.logException(
+        null,
+        'Failed to initialize provider: ${e.message}',
+        e,
+        stackTrace,
+      );
       throw Exception('Failed to initialize provider: ${e.message}');
     }
   }
@@ -42,7 +50,13 @@ class PlatformAdService {
         'adType': adType.name,
         'adUnitId': adUnitId,
       });
-    } on PlatformException catch (e) {
+    } on PlatformException catch (e, stackTrace) {
+      AdsLogger.logException(
+        adType,
+        'Failed to load ad: ${e.message}',
+        e,
+        stackTrace,
+      );
       throw Exception('Failed to load ad: ${e.message}');
     }
   }
@@ -60,7 +74,18 @@ class PlatformAdService {
         'providerType': providerType.name,
         'adType': adType.name,
       });
-    } on PlatformException catch (e) {
+    } on PlatformException catch (e, stackTrace) {
+      final isNotLoaded = e.code == 'AD_NOT_LOADED';
+      if (isNotLoaded) {
+        AdsLogger.logAdNotLoaded(adType, e.message ?? 'Ad not loaded');
+        throw Exception('Ad not loaded. Load the ad first, then tap Show.');
+      }
+      AdsLogger.logException(
+        adType,
+        'Failed to show ad: ${e.message}',
+        e,
+        stackTrace,
+      );
       throw Exception('Failed to show ad: ${e.message}');
     }
   }
@@ -77,7 +102,13 @@ class PlatformAdService {
         throw Exception('No internet available');
       }
       return isConnected;
-    } on PlatformException {
+    } on PlatformException catch (e, stackTrace) {
+      AdsLogger.logException(
+        null,
+        'No internet available',
+        e,
+        stackTrace,
+      );
       throw Exception('No internet available');
     }
   }
@@ -110,11 +141,12 @@ class PlatformAdService {
           break;
         case 'onAdFailedToLoad':
           final adTypeStr = call.arguments['adType'] as String;
-          final error = call.arguments['error'] as String;
+          final error = call.arguments['error'] as String? ?? 'Unknown error';
           final adType = AdType.values.firstWhere(
             (e) => e.name == adTypeStr,
             orElse: () => AdType.banner,
           );
+          AdsLogger.logAdFailedToLoad(adType, error);
           onAdFailedToLoad?.call(adType, error);
           break;
         case 'onAdShown':

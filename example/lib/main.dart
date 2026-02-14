@@ -3,6 +3,17 @@ import 'dart:io' show Platform;
 import 'package:flutter/material.dart';
 import 'package:multi_ads_sdk/multi_ads_sdk.dart';
 
+/// Test ad unit IDs (AdMob). Replace with your own for production.
+/// https://developers.google.com/admob/android/test-ads
+const _kTestAdUnitIds = (
+  interstitial: 'ca-app-pub-3940256099942544/1033173712',
+  rewarded: 'ca-app-pub-3940256099942544/5224354917',
+  rewardedInterstitial: 'ca-app-pub-3940256099942544/5354046379',
+  appOpen: 'ca-app-pub-3940256099942544/9257395921',
+  banner: 'ca-app-pub-3940256099942544/6300978111',
+  native: 'ca-app-pub-3940256099942544/2247696110',
+);
+
 void main() {
   runApp(const MyApp());
 }
@@ -66,7 +77,7 @@ class _AdsExamplePageState extends State<AdsExamplePage> {
       _log('Loading interstitial...');
       // Use test ad unit ID - replace with your own
       await MultiAdsManager.loadInterstitial(
-        adUnitId: 'ca-app-pub-3940256099942544/1033173712',
+        adUnitId: _kTestAdUnitIds.interstitial,
       );
       setState(() {
         _statusMessage = 'Interstitial loaded';
@@ -98,7 +109,7 @@ class _AdsExamplePageState extends State<AdsExamplePage> {
       _log('Loading rewarded ad...');
       // Use test ad unit ID - replace with your own
       await MultiAdsManager.loadRewarded(
-        adUnitId: 'ca-app-pub-3940256099942544/5224354917',
+        adUnitId: _kTestAdUnitIds.rewarded,
       );
       setState(() {
         _statusMessage = 'Rewarded ad loaded';
@@ -137,8 +148,7 @@ class _AdsExamplePageState extends State<AdsExamplePage> {
       _log('Loading app open ad...');
       // Use test ad unit ID - replace with your own
       await MultiAdsManager.loadAppOpen(
-        adUnitId:
-            'ca-app-pub-3940256099942544/9257395921', // App Open test ad unit
+        adUnitId: _kTestAdUnitIds.appOpen,
       );
       setState(() {
         _statusMessage = 'App open ad loaded';
@@ -170,7 +180,7 @@ class _AdsExamplePageState extends State<AdsExamplePage> {
       _log('Loading banner ad...');
       // Use test ad unit ID - replace with your own
       await MultiAdsManager.loadBanner(
-        adUnitId: 'ca-app-pub-3940256099942544/6300978111',
+        adUnitId: _kTestAdUnitIds.banner,
       );
       setState(() {
         _statusMessage = 'Banner ad loaded';
@@ -202,7 +212,7 @@ class _AdsExamplePageState extends State<AdsExamplePage> {
       _log('Loading rewarded interstitial...');
       // Use test ad unit ID - replace with your own
       await MultiAdsManager.loadRewardedInterstitial(
-        adUnitId: 'ca-app-pub-3940256099942544/5354046379',
+        adUnitId: _kTestAdUnitIds.rewardedInterstitial,
       );
       setState(() {
         _statusMessage = 'Rewarded interstitial loaded';
@@ -241,7 +251,7 @@ class _AdsExamplePageState extends State<AdsExamplePage> {
       _log('Loading native ad...');
       // Use test ad unit ID - replace with your own
       await MultiAdsManager.loadNative(
-        adUnitId: 'ca-app-pub-3940256099942544/2247696110',
+        adUnitId: _kTestAdUnitIds.native,
       );
       setState(() {
         _statusMessage = 'Native ad loaded';
@@ -259,10 +269,15 @@ class _AdsExamplePageState extends State<AdsExamplePage> {
     try {
       _log('Showing native ad...');
       await MultiAdsManager.showNative();
+      setState(() => _statusMessage = 'Native ad shown');
       _log('Native ad shown');
     } catch (e) {
+      final msg = e.toString();
       setState(() {
-        _statusMessage = 'Failed to show native: $e';
+        _statusMessage =
+            msg.contains('not loaded') || msg.contains('AD_NOT_LOADED')
+                ? 'Load the native ad first, then tap Show.'
+                : 'Failed to show native: $e';
       });
       _log('Error showing native: $e');
     }
@@ -442,12 +457,31 @@ class _AdsExamplePageState extends State<AdsExamplePage> {
                     ],
                   ),
                   const SizedBox(height: 16),
-                  // Native Ads – view + buttons
+                  // Native Ads – Small and Medium layouts
                   _buildSection(
                     context,
                     'Native Ads',
                     [
-                      _buildNativeAdView(context),
+                      Text(
+                        'Load then Show. Same ad appears in both slots: Small (compact row) and Medium (with media, body, full CTA).',
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
+                      const SizedBox(height: 12),
+                      Text(
+                        'Small',
+                        style: Theme.of(context).textTheme.titleSmall,
+                      ),
+                      const SizedBox(height: 4),
+                      _buildNativeAdSlot(
+                          context, 'multi_ads_sdk/native_small', 128),
+                      const SizedBox(height: 12),
+                      Text(
+                        'Medium',
+                        style: Theme.of(context).textTheme.titleSmall,
+                      ),
+                      const SizedBox(height: 4),
+                      _buildNativeAdSlot(
+                          context, 'multi_ads_sdk/native_medium', 350),
                       const SizedBox(height: 12),
                       _buildButton(
                         context,
@@ -513,14 +547,17 @@ class _AdsExamplePageState extends State<AdsExamplePage> {
     );
   }
 
-  /// Native ad view: platform view on Android and iOS (like banner), placeholder on other platforms.
-  Widget _buildNativeAdView(BuildContext context) {
-    const height = 150.0;
+  /// Native ad slot: platform view for small or medium layout.
+  Widget _buildNativeAdSlot(
+    BuildContext context,
+    String viewType,
+    double height,
+  ) {
     if (Platform.isAndroid) {
-      return const SizedBox(
+      return SizedBox(
         height: height,
         child: AndroidView(
-          viewType: 'multi_ads_sdk/native',
+          viewType: viewType,
           layoutDirection: TextDirection.ltr,
           creationParams: null,
           creationParamsCodec: null,
@@ -528,10 +565,10 @@ class _AdsExamplePageState extends State<AdsExamplePage> {
       );
     }
     if (Platform.isIOS) {
-      return const SizedBox(
+      return SizedBox(
         height: height,
         child: UiKitView(
-          viewType: 'multi_ads_sdk/native',
+          viewType: viewType,
           layoutDirection: TextDirection.ltr,
           creationParams: null,
           creationParamsCodec: null,

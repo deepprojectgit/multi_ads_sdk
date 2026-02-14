@@ -10,9 +10,11 @@ import io.flutter.plugin.platform.PlatformViewFactory
 /**
  * Platform view factory for embedding native ads in Flutter.
  * Creates a container that the plugin fills with the loaded native ad view.
+ * @param layoutSize "small" or "medium" to use the corresponding native ad layout.
  */
 class NativeAdViewFactory(
-    private val plugin: MultiAdsSdkPlugin
+    private val plugin: MultiAdsSdkPlugin,
+    private val layoutSize: String = "medium"
 ) : PlatformViewFactory(StandardMessageCodec.INSTANCE) {
 
     override fun create(context: Context, viewId: Int, args: Any?): PlatformView {
@@ -22,11 +24,11 @@ class NativeAdViewFactory(
                 FrameLayout.LayoutParams.WRAP_CONTENT
             )
         }
-        plugin.setNativeContainer(container)
+        plugin.setNativeContainer(container, layoutSize)
         return object : PlatformView {
             override fun getView(): View = container
             override fun dispose() {
-                plugin.setNativeContainer(null)
+                plugin.setNativeContainer(null, layoutSize)
             }
         }
     }
