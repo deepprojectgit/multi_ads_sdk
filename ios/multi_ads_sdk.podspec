@@ -4,7 +4,7 @@
 #
 Pod::Spec.new do |s|
   s.name             = 'multi_ads_sdk'
-  s.version          = '1.0.7'
+  s.version          = '1.0.8'
   s.summary          = 'A comprehensive Flutter SDK for multi-provider ads'
   s.description      = <<-DESC
 A comprehensive Flutter SDK for multi-provider ads (AdMob, AdX, Facebook) with single-load and single-show pattern.
@@ -22,7 +22,7 @@ A comprehensive Flutter SDK for multi-provider ads (AdMob, AdX, Facebook) with s
   s.pod_target_xcconfig = { 'DEFINES_MODULE' => 'YES', 'EXCLUDED_ARCHS[sdk=iphonesimulator*]' => 'i386' }
   s.swift_version = '5.0'
 
-  # Ad dependencies
-  s.dependency 'Google-Mobile-Ads-SDK', '~> 10.0'
+  # Ad dependencies (12.x for Firebase 11 compatibility - resolves GoogleUtilities/nanopb conflicts)
+  s.dependency 'Google-Mobile-Ads-SDK', '~> 12.0'
   s.dependency 'FBAudienceNetwork', '~> 6.16'
 end

@@ -5,10 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.8] - 2026-02-14
+
+### Changed
+- Version bump to 1.0.8.
+
 ## [1.0.7] - 2026-02-14
 
 ### Changed
-- **iOS**: Minimum deployment target raised to iOS 15.0 (from 12.0). Plugin podspec and README updated accordingly.
+- **iOS**: Upgrade Google-Mobile-Ads-SDK from ~> 10.0 to ~> 12.0 for Firebase 11 compatibility (resolves GoogleUtilities/NSData+zlib and nanopb conflicts).
 
 ## [1.0.6] - 2026-02-14
 

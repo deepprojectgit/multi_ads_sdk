@@ -37,7 +37,7 @@ Add this package to your `pubspec.yaml`:
 
 ```yaml
 dependencies:
-  multi_ads_sdk: ^1.0.7
+  multi_ads_sdk: ^1.0.8
 ```
 
 Then run:
@@ -112,7 +112,7 @@ cd ..
 ```
 
 4. **Dependencies** (already included in the package):
-   - Google-Mobile-Ads-SDK
+   - Google-Mobile-Ads-SDK (~> 12.0, Firebase 11 compatible)
    - FBAudienceNetwork
 
 ## 💻 Usage
@@ -376,14 +376,8 @@ enum AdType {
 1. **Pod install errors**: Run `pod repo update` then `pod install`
 2. **Build errors**: Ensure iOS deployment target is 15.0 or higher
 3. **Ad not loading**: Check `Info.plist` for AdMob App ID
-4. **Google-Mobile-Ads-SDK / nanopb resolution**: If you see dependency resolution errors involving `GoogleAppMeasurement` or `nanopb` (e.g. when using Firebase alongside this SDK), try:
-   - From your app root: `cd ios`, remove `Podfile.lock` and `Pods` folder, then run `pod install --repo-update`.
-   - If it still fails, in your app’s `ios/Podfile` add this before the `post_install` block (or create one) to force a compatible nanopb:
-   ```ruby
-   # Resolve nanopb conflict with Google-Mobile-Ads-SDK / Firebase
-   pod 'nanopb', '~> 2.30906.0'
-   ```
-   Then run `pod install` again.
+4. **Firebase compatibility**: This SDK uses Google-Mobile-Ads-SDK 12.x for compatibility with Firebase 11.x. If you see dependency errors:
+   - Run `cd ios`, remove `Podfile.lock` and `Pods`, then `pod install --repo-update`.
 
 ## 📋 Ads failure & exception logging
 
