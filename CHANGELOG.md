@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.3] - 2026-01-29
+
+### Added
+- **AdsLogger**: `logAdFailedToLoad`, `logException`, `logAdNotLoaded`, and `setLogger()` for optional custom logging (e.g. Crashlytics). Exported from `multi_ads_sdk.dart`; see README for usage.
+- Native ad layouts: Small and Medium variants with full-width INSTALL button, media-on-top (medium), and transparent background option.
+
+### Changed
+- **Native ads**: Layout matches reference (media → details row → body for medium → full-width INSTALL button). Transparent background for native ad containers on Android and iOS.
+- **AD_NOT_LOADED**: When show is called before load, SDK throws a clear message ("Ad not loaded. Load the ad first, then tap Show.") and logs without full stack trace. Example app shows "Load the native ad first, then tap Show." when this occurs.
+
+### Fixed
+- Lint: Removed unnecessary braces in string interpolation in `ads_logger.dart`.
+
 ## [1.0.2] - 2026-01-29
 
 ### Fixed
