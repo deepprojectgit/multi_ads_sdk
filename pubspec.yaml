@@ -1,6 +1,6 @@
 name: multi_ads_sdk
 description: A comprehensive Flutter SDK for multi-provider ads (AdMob, AdX, Facebook) with single-load and single-show pattern. Built with clean architecture principles and supports Android & iOS.
-version: 1.0.3
+version: 1.0.4
 homepage: https://github.com/deepprojectgit/multi_ads_sdk
 repository: https://github.com/deepprojectgit/multi_ads_sdk
 
