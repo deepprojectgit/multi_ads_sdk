@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.5] - 2026-01-29
+
+### Changed
+- iOS podspec version aligned with package version for correct CocoaPods resolution.
+- README: Added iOS troubleshooting for Google-Mobile-Ads-SDK / nanopb dependency resolution (e.g. when using Firebase).
+
 ## [1.0.4] - 2026-01-29
 
 ### Changed
