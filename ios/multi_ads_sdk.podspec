@@ -4,7 +4,7 @@
 #
 Pod::Spec.new do |s|
   s.name             = 'multi_ads_sdk'
-  s.version          = '1.0.8'
+  s.version          = '1.0.9'
   s.summary          = 'A comprehensive Flutter SDK for multi-provider ads'
   s.description      = <<-DESC
 A comprehensive Flutter SDK for multi-provider ads (AdMob, AdX, Facebook) with single-load and single-show pattern.

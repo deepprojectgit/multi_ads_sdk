@@ -13,12 +13,12 @@ public class MultiAdsSdkPlugin: NSObject, FlutterPlugin {
     private var channel: FlutterMethodChannel
     
     // AdMob/AdX instances (single instance per ad type)
-    private var admobInterstitialAd: GADInterstitialAd?
-    private var admobRewardedAd: GADRewardedAd?
-    private var admobRewardedInterstitialAd: GADRewardedInterstitialAd?
-    private var admobAppOpenAd: GADAppOpenAd?
-    private var admobNativeAd: GADNativeAd?
-    private var admobBannerAd: GADBannerView?
+    private var admobInterstitialAd: InterstitialAd?
+    private var admobRewardedAd: RewardedAd?
+    private var admobRewardedInterstitialAd: RewardedInterstitialAd?
+    private var admobAppOpenAd: AppOpenAd?
+    private var admobNativeAd: NativeAd?
+    private var admobBannerAd: BannerView?
     
     // Facebook instances (single instance per ad type)
     private var facebookInterstitialAd: FBInterstitialAd?
@@ -34,8 +34,8 @@ public class MultiAdsSdkPlugin: NSObject, FlutterPlugin {
     private var currentProviderType: String?
     private var bannerLoadResult: FlutterResult?
     private var nativeLoadResult: FlutterResult?
-    // Retain GADAdLoader so it is not deallocated before native ad load completes
-    private var admobNativeAdLoader: GADAdLoader?
+    // Retain AdLoader so it is not deallocated before native ad load completes
+    private var admobNativeAdLoader: AdLoader?
     
     /// Called by BannerAdViewFactory when the platform view is created or disposed.
     func setBannerContainer(_ view: UIView?) {
@@ -138,9 +138,9 @@ public class MultiAdsSdkPlugin: NSObject, FlutterPlugin {
         }
     }
     
-    private func buildAdMobNativeView(container: UIView, ad: GADNativeAd, size: String) {
+    private func buildAdMobNativeView(container: UIView, ad: NativeAd, size: String) {
         container.subviews.forEach { $0.removeFromSuperview() }
-        let nativeAdView = GADNativeAdView()
+        let nativeAdView = NativeAdView()
         nativeAdView.translatesAutoresizingMaskIntoConstraints = false
         nativeAdView.backgroundColor = .clear
         var lastAnchor = nativeAdView.topAnchor
@@ -149,7 +149,7 @@ public class MultiAdsSdkPlugin: NSObject, FlutterPlugin {
         
         // Media at top (medium: show; small: optional / hidden if no media)
         if !isSmall {
-            let mediaView = GADMediaView()
+            let mediaView = MediaView()
             mediaView.translatesAutoresizingMaskIntoConstraints = false
             nativeAdView.mediaView = mediaView
             nativeAdView.addSubview(mediaView)
@@ -333,7 +333,7 @@ public class MultiAdsSdkPlugin: NSObject, FlutterPlugin {
         currentProviderType = providerType
         switch providerType {
         case "admob", "adx":
-            GADMobileAds.sharedInstance().start(completionHandler: { _ in
+            MobileAds.shared.start(completionHandler: { _ in
                 result(true)
             })
         case "facebook":
@@ -365,8 +365,8 @@ public class MultiAdsSdkPlugin: NSObject, FlutterPlugin {
                 result(true)
                 return
             }
-            let request = GADRequest()
-            GADInterstitialAd.load(withAdUnitID: adUnitId, request: request) { [weak self] ad, error in
+            let request = Request()
+            InterstitialAd.load(with: adUnitId, request: request) { [weak self] ad, error in
                 guard let self = self else { return }
                 if let error = error {
                     self.sendEvent(method: "onAdFailedToLoad", arguments: ["adType": "interstitial", "error": error.localizedDescription])
@@ -383,8 +383,8 @@ public class MultiAdsSdkPlugin: NSObject, FlutterPlugin {
                 result(true)
                 return
             }
-            let request = GADRequest()
-            GADRewardedAd.load(withAdUnitID: adUnitId, request: request) { [weak self] ad, error in
+            let request = Request()
+            RewardedAd.load(with: adUnitId, request: request) { [weak self] ad, error in
                 guard let self = self else { return }
                 if let error = error {
                     self.sendEvent(method: "onAdFailedToLoad", arguments: ["adType": "rewarded", "error": error.localizedDescription])
@@ -401,8 +401,8 @@ public class MultiAdsSdkPlugin: NSObject, FlutterPlugin {
                 result(true)
                 return
             }
-            let request = GADRequest()
-            GADRewardedInterstitialAd.load(withAdUnitID: adUnitId, request: request) { [weak self] ad, error in
+            let request = Request()
+            RewardedInterstitialAd.load(with: adUnitId, request: request) { [weak self] ad, error in
                 guard let self = self else { return }
                 if let error = error {
                     self.sendEvent(method: "onAdFailedToLoad", arguments: ["adType": "rewardedInterstitial", "error": error.localizedDescription])
@@ -419,8 +419,8 @@ public class MultiAdsSdkPlugin: NSObject, FlutterPlugin {
                 result(true)
                 return
             }
-            let request = GADRequest()
-            GADAppOpenAd.load(withAdUnitID: adUnitId, request: request, orientation: UIInterfaceOrientation.portrait) { [weak self] ad, error in
+            let request = Request()
+            AppOpenAd.load(with: adUnitId, request: request) { [weak self] ad, error in
                 guard let self = self else { return }
                 if let error = error {
                     self.sendEvent(method: "onAdFailedToLoad", arguments: ["adType": "appOpen", "error": error.localizedDescription])
@@ -439,10 +439,10 @@ public class MultiAdsSdkPlugin: NSObject, FlutterPlugin {
                 return
             }
             bannerLoadResult = result
-            admobBannerAd = GADBannerView(adSize: GADAdSizeBanner)
+            admobBannerAd = BannerView(adSize: AdSizeBanner)
             admobBannerAd?.adUnitID = adUnitId
             admobBannerAd?.delegate = self
-            admobBannerAd?.load(GADRequest())
+            admobBannerAd?.load(Request())
             
         case "native":
             if admobNativeAd != nil {
@@ -450,9 +450,9 @@ public class MultiAdsSdkPlugin: NSObject, FlutterPlugin {
                 return
             }
             nativeLoadResult = result
-            let request = GADRequest()
+            let request = Request()
             let rootVC = getRootViewController()
-            let loader = GADAdLoader(adUnitID: adUnitId, rootViewController: rootVC, adTypes: [.native], options: nil)
+            let loader = AdLoader(adUnitID: adUnitId, rootViewController: rootVC, adTypes: [.native], options: nil)
             loader.delegate = self
             admobNativeAdLoader = loader
             loader.load(request)
@@ -470,8 +470,8 @@ public class MultiAdsSdkPlugin: NSObject, FlutterPlugin {
                 result(true)
                 return
             }
-            let request = GADRequest()
-            GADInterstitialAd.load(withAdUnitID: adUnitId, request: request) { [weak self] ad, error in
+            let request = Request()
+            InterstitialAd.load(with: adUnitId, request: request) { [weak self] ad, error in
                 guard let self = self else { return }
                 if let error = error {
                     self.sendEvent(method: "onAdFailedToLoad", arguments: ["adType": "interstitial", "error": error.localizedDescription])
@@ -488,8 +488,8 @@ public class MultiAdsSdkPlugin: NSObject, FlutterPlugin {
                 result(true)
                 return
             }
-            let request = GADRequest()
-            GADRewardedAd.load(withAdUnitID: adUnitId, request: request) { [weak self] ad, error in
+            let request = Request()
+            RewardedAd.load(with: adUnitId, request: request) { [weak self] ad, error in
                 guard let self = self else { return }
                 if let error = error {
                     self.sendEvent(method: "onAdFailedToLoad", arguments: ["adType": "rewarded", "error": error.localizedDescription])
@@ -598,7 +598,7 @@ public class MultiAdsSdkPlugin: NSObject, FlutterPlugin {
                 return
             }
             ad.fullScreenContentDelegate = self
-            ad.present(fromRootViewController: rootViewController)
+            ad.present(from: rootViewController)
             sendEvent(method: "onAdShown", arguments: ["adType": "interstitial"])
             result(true)
             
@@ -608,7 +608,7 @@ public class MultiAdsSdkPlugin: NSObject, FlutterPlugin {
                 return
             }
             ad.fullScreenContentDelegate = self
-            ad.present(fromRootViewController: rootViewController) {
+            ad.present(from: rootViewController) {
                 self.sendEvent(method: "onRewarded", arguments: ["adType": "rewarded"])
             }
             sendEvent(method: "onAdShown", arguments: ["adType": "rewarded"])
@@ -620,7 +620,7 @@ public class MultiAdsSdkPlugin: NSObject, FlutterPlugin {
                 return
             }
             ad.fullScreenContentDelegate = self
-            ad.present(fromRootViewController: rootViewController) {
+            ad.present(from: rootViewController) {
                 self.sendEvent(method: "onRewarded", arguments: ["adType": "rewardedInterstitial"])
             }
             sendEvent(method: "onAdShown", arguments: ["adType": "rewardedInterstitial"])
@@ -632,7 +632,7 @@ public class MultiAdsSdkPlugin: NSObject, FlutterPlugin {
                 return
             }
             ad.fullScreenContentDelegate = self
-            ad.present(fromRootViewController: rootViewController)
+            ad.present(from: rootViewController)
             sendEvent(method: "onAdShown", arguments: ["adType": "appOpen"])
             result(true)
             
@@ -731,69 +731,69 @@ public class MultiAdsSdkPlugin: NSObject, FlutterPlugin {
     }
 }
 
-// MARK: - GADFullScreenContentDelegate
-extension MultiAdsSdkPlugin: GADFullScreenContentDelegate {
-    public func adDidRecordImpression(_ ad: GADFullScreenPresentingAd) {
+// MARK: - FullScreenContentDelegate
+extension MultiAdsSdkPlugin: FullScreenContentDelegate {
+    public func adDidRecordImpression(_ ad: FullScreenPresentingAd) {
         // Ad impression recorded
     }
     
-    public func ad(_ ad: GADFullScreenPresentingAd, didFailToPresentFullScreenContentWithError error: Error) {
+    public func ad(_ ad: FullScreenPresentingAd, didFailToPresentFullScreenContentWithError error: Error) {
         // Ad failed to present
     }
     
-    public func adWillPresentFullScreenContent(_ ad: GADFullScreenPresentingAd) {
+    public func adWillPresentFullScreenContent(_ ad: FullScreenPresentingAd) {
         // Ad will present
     }
     
-    public func adWillDismissFullScreenContent(_ ad: GADFullScreenPresentingAd) {
+    public func adWillDismissFullScreenContent(_ ad: FullScreenPresentingAd) {
         // Ad will dismiss
     }
     
-    public func adDidDismissFullScreenContent(_ ad: GADFullScreenPresentingAd) {
+    public func adDidDismissFullScreenContent(_ ad: FullScreenPresentingAd) {
         // Clear ad instance after dismissal
-        if ad is GADInterstitialAd {
+        if ad is InterstitialAd {
             admobInterstitialAd = nil
             sendEvent(method: "onAdDismissed", arguments: ["adType": "interstitial"])
-        } else if ad is GADRewardedAd {
+        } else if ad is RewardedAd {
             admobRewardedAd = nil
             sendEvent(method: "onAdDismissed", arguments: ["adType": "rewarded"])
-        } else if ad is GADRewardedInterstitialAd {
+        } else if ad is RewardedInterstitialAd {
             admobRewardedInterstitialAd = nil
             sendEvent(method: "onAdDismissed", arguments: ["adType": "rewardedInterstitial"])
-        } else if ad is GADAppOpenAd {
+        } else if ad is AppOpenAd {
             admobAppOpenAd = nil
             sendEvent(method: "onAdDismissed", arguments: ["adType": "appOpen"])
         }
     }
 }
 
-// MARK: - GADBannerViewDelegate
-extension MultiAdsSdkPlugin: GADBannerViewDelegate {
-    public func bannerViewDidReceiveAd(_ bannerView: GADBannerView) {
+// MARK: - BannerViewDelegate
+extension MultiAdsSdkPlugin: BannerViewDelegate {
+    public func bannerViewDidReceiveAd(_ bannerView: BannerView) {
         sendEvent(method: "onAdLoaded", arguments: ["adType": "banner"])
         attachBannerToContainer()
         bannerLoadResult?(true)
         bannerLoadResult = nil
     }
     
-    public func bannerView(_ bannerView: GADBannerView, didFailToReceiveAdWithError error: Error) {
+    public func bannerView(_ bannerView: BannerView, didFailToReceiveAdWithError error: Error) {
         sendEvent(method: "onAdFailedToLoad", arguments: ["adType": "banner", "error": error.localizedDescription])
         bannerLoadResult?(FlutterError(code: "LOAD_FAILED", message: error.localizedDescription, details: nil))
         bannerLoadResult = nil
     }
     
-    public func bannerViewDidRecordImpression(_ bannerView: GADBannerView) {
+    public func bannerViewDidRecordImpression(_ bannerView: BannerView) {
         sendEvent(method: "onAdShown", arguments: ["adType": "banner"])
     }
     
-    public func bannerViewWillPresentScreen(_ bannerView: GADBannerView) {
+    public func bannerViewWillPresentScreen(_ bannerView: BannerView) {
         sendEvent(method: "onAdClicked", arguments: ["adType": "banner"])
     }
 }
 
-// MARK: - GADAdLoaderDelegate
-extension MultiAdsSdkPlugin: GADAdLoaderDelegate, GADNativeAdLoaderDelegate {
-    public func adLoader(_ adLoader: GADAdLoader, didReceive nativeAd: GADNativeAd) {
+// MARK: - AdLoaderDelegate
+extension MultiAdsSdkPlugin: AdLoaderDelegate, NativeAdLoaderDelegate {
+    public func adLoader(_ adLoader: AdLoader, didReceive nativeAd: NativeAd) {
         admobNativeAd = nativeAd
         admobNativeAdLoader = nil
         sendEvent(method: "onAdLoaded", arguments: ["adType": "native"])
@@ -802,7 +802,7 @@ extension MultiAdsSdkPlugin: GADAdLoaderDelegate, GADNativeAdLoaderDelegate {
         nativeLoadResult = nil
     }
     
-    public func adLoader(_ adLoader: GADAdLoader, didFailToReceiveAdWithError error: Error) {
+    public func adLoader(_ adLoader: AdLoader, didFailToReceiveAdWithError error: Error) {
         admobNativeAdLoader = nil
         sendEvent(method: "onAdFailedToLoad", arguments: ["adType": "native", "error": error.localizedDescription])
         nativeLoadResult?(FlutterError(code: "LOAD_FAILED", message: error.localizedDescription, details: nil))
