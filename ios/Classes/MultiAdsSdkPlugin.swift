@@ -252,7 +252,7 @@ public class MultiAdsSdkPlugin: NSObject, FlutterPlugin {
             ctaButton.leadingAnchor.constraint(equalTo: nativeAdView.leadingAnchor, constant: padding),
             ctaButton.trailingAnchor.constraint(equalTo: nativeAdView.trailingAnchor, constant: -padding),
             ctaButton.topAnchor.constraint(equalTo: lastAnchor, constant: 12),
-            ctaButton.heightAnchor.constraint(equalToConstant: isSmall ? 48 : 52),
+            ctaButton.heightAnchor.constraint(equalToConstant: isSmall ? 36 : 40),
             ctaButton.bottomAnchor.constraint(equalTo: nativeAdView.bottomAnchor, constant: -padding)
         ])
         nativeAdView.nativeAd = ad

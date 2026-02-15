@@ -89,9 +89,9 @@
             android:id="@+id/native_ad_call_to_action"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:minHeight="52dp"
+            android:minHeight="40dp"
             android:layout_marginTop="12dp"
-            android:paddingVertical="14dp"
+            android:paddingVertical="10dp"
             android:textSize="16sp"
             android:textAllCaps="true"
             android:backgroundTint="#1A73E8" />
