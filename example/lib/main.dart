@@ -473,7 +473,7 @@ class _AdsExamplePageState extends State<AdsExamplePage> {
                       ),
                       const SizedBox(height: 4),
                       _buildNativeAdSlot(
-                          context, 'multi_ads_sdk/native_small', 128),
+                          context, 'multi_ads_sdk/native_small', 96),
                       const SizedBox(height: 12),
                       Text(
                         'Medium',
@@ -481,7 +481,7 @@ class _AdsExamplePageState extends State<AdsExamplePage> {
                       ),
                       const SizedBox(height: 4),
                       _buildNativeAdSlot(
-                          context, 'multi_ads_sdk/native_medium', 350),
+                          context, 'multi_ads_sdk/native_medium', 280),
                       const SizedBox(height: 12),
                       _buildButton(
                         context,

@@ -120,16 +120,16 @@ class MultiAdsSdkPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
                 targetContainer.removeAllViews()
                 val root = LinearLayout(ctx).apply {
                     orientation = LinearLayout.VERTICAL
-                    setPadding(dpToPx(12), dpToPx(12), dpToPx(12), dpToPx(12))
+                    setPadding(dpToPx(8), dpToPx(8), dpToPx(8), dpToPx(8))
                 }
                 val mediaView = com.facebook.ads.MediaView(ctx)
-                root.addView(mediaView, ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dpToPx(150)))
-                val titleView = TextView(ctx).apply { text = ad.advertiserName; textSize = 16f; setPadding(0, dpToPx(8), 0, 0) }
+                root.addView(mediaView, ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dpToPx(110)))
+                val titleView = TextView(ctx).apply { text = ad.advertiserName; textSize = 15f; setPadding(0, dpToPx(6), 0, 0) }
                 root.addView(titleView)
-                val bodyView = TextView(ctx).apply { text = ad.adBodyText; textSize = 14f; setPadding(0, dpToPx(4), 0, 0) }
+                val bodyView = TextView(ctx).apply { text = ad.adBodyText; textSize = 14f; setPadding(0, dpToPx(2), 0, 0) }
                 root.addView(bodyView)
-                val ctaButton = Button(ctx).apply { text = ad.adCallToAction; setPadding(dpToPx(16), dpToPx(8), dpToPx(16), dpToPx(8)) }
-                root.addView(ctaButton, LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT).apply { topMargin = dpToPx(8) })
+                val ctaButton = Button(ctx).apply { text = ad.adCallToAction; setPadding(dpToPx(12), dpToPx(6), dpToPx(12), dpToPx(6)) }
+                root.addView(ctaButton, LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT).apply { topMargin = dpToPx(6) })
                 ad.registerViewForInteraction(root, mediaView)
                 targetContainer.addView(root)
             }

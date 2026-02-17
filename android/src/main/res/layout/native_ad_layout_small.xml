@@ -4,14 +4,14 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:background="@android:color/transparent"
-    android:padding="12dp">
+    android:padding="8dp">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical">
 
-        <!-- Row: Icon + Headline + Ad badge + Star rating (matches reference) -->
+        <!-- Row: Icon + Headline + Ad badge + Star rating (compact) -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -20,8 +20,8 @@
 
             <ImageView
                 android:id="@+id/native_ad_icon"
-                android:layout_width="48dp"
-                android:layout_height="48dp"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
                 android:contentDescription="Ad icon"
                 android:scaleType="fitCenter" />
 
@@ -29,7 +29,7 @@
                 android:id="@+id/native_ad_badge"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="6dp"
+                android:layout_marginStart="4dp"
                 android:background="#E8F5E9"
                 android:paddingHorizontal="6dp"
                 android:paddingVertical="2dp"
@@ -42,14 +42,14 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:layout_marginStart="12dp"
+                android:layout_marginStart="8dp"
                 android:orientation="vertical">
 
                 <TextView
                     android:id="@+id/native_ad_headline"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:textSize="15sp"
+                    android:textSize="14sp"
                     android:textStyle="bold"
                     android:maxLines="1"
                     android:ellipsize="end" />
@@ -59,7 +59,7 @@
                     style="?android:attr/ratingBarStyleSmall"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="2dp"
+                    android:layout_marginTop="1dp"
                     android:numStars="5"
                     android:rating="0"
                     android:stepSize="0.5" />
@@ -71,10 +71,10 @@
             android:id="@+id/native_ad_call_to_action"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:minHeight="36dp"
-            android:layout_marginTop="10dp"
-            android:paddingVertical="8dp"
-            android:textSize="15sp"
+            android:minHeight="32dp"
+            android:layout_marginTop="6dp"
+            android:paddingVertical="6dp"
+            android:textSize="14sp"
             android:textAllCaps="true"
             android:backgroundTint="#1A73E8" />
     </LinearLayout>

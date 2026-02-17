@@ -99,7 +99,7 @@ public class MultiAdsSdkPlugin: NSObject, FlutterPlugin {
             root.addSubview(mediaView)
             let titleLabel = UILabel()
             titleLabel.text = ad.advertiserName ?? ""
-            titleLabel.font = .boldSystemFont(ofSize: 16)
+            titleLabel.font = .boldSystemFont(ofSize: 15)
             titleLabel.translatesAutoresizingMaskIntoConstraints = false
             root.addSubview(titleLabel)
             let bodyLabel = UILabel()
@@ -116,16 +116,16 @@ public class MultiAdsSdkPlugin: NSObject, FlutterPlugin {
                 mediaView.leadingAnchor.constraint(equalTo: root.leadingAnchor),
                 mediaView.trailingAnchor.constraint(equalTo: root.trailingAnchor),
                 mediaView.topAnchor.constraint(equalTo: root.topAnchor),
-                mediaView.heightAnchor.constraint(equalToConstant: 150),
-                titleLabel.leadingAnchor.constraint(equalTo: root.leadingAnchor, constant: 12),
-                titleLabel.trailingAnchor.constraint(equalTo: root.trailingAnchor, constant: -12),
-                titleLabel.topAnchor.constraint(equalTo: mediaView.bottomAnchor, constant: 8),
-                bodyLabel.leadingAnchor.constraint(equalTo: root.leadingAnchor, constant: 12),
-                bodyLabel.trailingAnchor.constraint(equalTo: root.trailingAnchor, constant: -12),
-                bodyLabel.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: 4),
-                ctaButton.leadingAnchor.constraint(equalTo: root.leadingAnchor, constant: 12),
-                ctaButton.topAnchor.constraint(equalTo: bodyLabel.bottomAnchor, constant: 8),
-                ctaButton.bottomAnchor.constraint(equalTo: root.bottomAnchor, constant: -12)
+                mediaView.heightAnchor.constraint(equalToConstant: 110),
+                titleLabel.leadingAnchor.constraint(equalTo: root.leadingAnchor, constant: 8),
+                titleLabel.trailingAnchor.constraint(equalTo: root.trailingAnchor, constant: -8),
+                titleLabel.topAnchor.constraint(equalTo: mediaView.bottomAnchor, constant: 6),
+                bodyLabel.leadingAnchor.constraint(equalTo: root.leadingAnchor, constant: 8),
+                bodyLabel.trailingAnchor.constraint(equalTo: root.trailingAnchor, constant: -8),
+                bodyLabel.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: 2),
+                ctaButton.leadingAnchor.constraint(equalTo: root.leadingAnchor, constant: 8),
+                ctaButton.topAnchor.constraint(equalTo: bodyLabel.bottomAnchor, constant: 6),
+                ctaButton.bottomAnchor.constraint(equalTo: root.bottomAnchor, constant: -8)
             ])
             ad.registerView(forInteraction: root, mediaView: mediaView, iconView: nil, viewController: nil)
             c.addSubview(root)
@@ -144,7 +144,7 @@ public class MultiAdsSdkPlugin: NSObject, FlutterPlugin {
         nativeAdView.translatesAutoresizingMaskIntoConstraints = false
         nativeAdView.backgroundColor = .clear
         var lastAnchor = nativeAdView.topAnchor
-        let padding: CGFloat = 12
+        let padding: CGFloat = 8
         let isSmall = (size == "small")
         
         // Media at top (medium: show; small: optional / hidden if no media)
@@ -154,7 +154,7 @@ public class MultiAdsSdkPlugin: NSObject, FlutterPlugin {
             nativeAdView.mediaView = mediaView
             nativeAdView.addSubview(mediaView)
             let hasMedia = ad.mediaContent != nil
-            let mediaHeight: CGFloat = hasMedia ? 140 : 0
+            let mediaHeight: CGFloat = hasMedia ? 110 : 0
             mediaView.isHidden = !hasMedia
             NSLayoutConstraint.activate([
                 mediaView.leadingAnchor.constraint(equalTo: nativeAdView.leadingAnchor, constant: padding),
@@ -165,17 +165,17 @@ public class MultiAdsSdkPlugin: NSObject, FlutterPlugin {
             if hasMedia { lastAnchor = mediaView.bottomAnchor }
         }
         
-        // Row: Icon + Ad badge + Headline + Star rating (matches reference)
+        // Row: Icon + Ad badge + Headline + Star rating (compact)
         let rowStack = UIStackView()
         rowStack.axis = .horizontal
-        rowStack.spacing = 8
+        rowStack.spacing = 6
         rowStack.alignment = .center
         rowStack.translatesAutoresizingMaskIntoConstraints = false
         if let icon = ad.icon, let image = icon.image {
             let iconView = UIImageView(image: image)
             iconView.contentMode = .scaleAspectFit
-            iconView.widthAnchor.constraint(equalToConstant: 48).isActive = true
-            iconView.heightAnchor.constraint(equalToConstant: 48).isActive = true
+            iconView.widthAnchor.constraint(equalToConstant: 40).isActive = true
+            iconView.heightAnchor.constraint(equalToConstant: 40).isActive = true
             nativeAdView.iconView = iconView
             rowStack.addArrangedSubview(iconView)
         }
@@ -192,10 +192,10 @@ public class MultiAdsSdkPlugin: NSObject, FlutterPlugin {
         rowStack.addArrangedSubview(adBadge)
         let titleStack = UIStackView()
         titleStack.axis = .vertical
-        titleStack.spacing = 4
+        titleStack.spacing = 2
         let headlineLabel = UILabel()
         headlineLabel.text = ad.headline ?? ""
-        headlineLabel.font = .boldSystemFont(ofSize: isSmall ? 15 : 16)
+        headlineLabel.font = .boldSystemFont(ofSize: isSmall ? 14 : 15)
         headlineLabel.numberOfLines = 1
         nativeAdView.headlineView = headlineLabel
         titleStack.addArrangedSubview(headlineLabel)
@@ -233,7 +233,7 @@ public class MultiAdsSdkPlugin: NSObject, FlutterPlugin {
             NSLayoutConstraint.activate([
                 bodyLabel.leadingAnchor.constraint(equalTo: nativeAdView.leadingAnchor, constant: padding),
                 bodyLabel.trailingAnchor.constraint(equalTo: nativeAdView.trailingAnchor, constant: -padding),
-                bodyLabel.topAnchor.constraint(equalTo: lastAnchor, constant: 8)
+                bodyLabel.topAnchor.constraint(equalTo: lastAnchor, constant: 6)
             ])
             lastAnchor = bodyLabel.bottomAnchor
         }
@@ -241,7 +241,7 @@ public class MultiAdsSdkPlugin: NSObject, FlutterPlugin {
         // Full-width INSTALL button at bottom (matches reference for both platforms)
         let ctaButton = UIButton(type: .system)
         ctaButton.setTitle(ad.callToAction ?? "Learn More", for: .normal)
-        ctaButton.titleLabel?.font = .systemFont(ofSize: isSmall ? 15 : 16, weight: .medium)
+        ctaButton.titleLabel?.font = .systemFont(ofSize: isSmall ? 14 : 15, weight: .medium)
         ctaButton.backgroundColor = UIColor(red: 0.10, green: 0.45, blue: 0.91, alpha: 1)
         ctaButton.setTitleColor(.white, for: .normal)
         ctaButton.layer.cornerRadius = 8
@@ -251,8 +251,8 @@ public class MultiAdsSdkPlugin: NSObject, FlutterPlugin {
         NSLayoutConstraint.activate([
             ctaButton.leadingAnchor.constraint(equalTo: nativeAdView.leadingAnchor, constant: padding),
             ctaButton.trailingAnchor.constraint(equalTo: nativeAdView.trailingAnchor, constant: -padding),
-            ctaButton.topAnchor.constraint(equalTo: lastAnchor, constant: 12),
-            ctaButton.heightAnchor.constraint(equalToConstant: isSmall ? 36 : 40),
+            ctaButton.topAnchor.constraint(equalTo: lastAnchor, constant: 8),
+            ctaButton.heightAnchor.constraint(equalToConstant: isSmall ? 32 : 36),
             ctaButton.bottomAnchor.constraint(equalTo: nativeAdView.bottomAnchor, constant: -padding)
         ])
         nativeAdView.nativeAd = ad

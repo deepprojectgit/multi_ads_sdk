@@ -1,7 +1,7 @@
 name: multi_ads_sdk_example
 description: Example app for multi_ads_sdk package
 publish_to: 'none'
-version: 1.0.0+1
+version: 1.0.11+11
 
 environment:
   sdk: '>=3.0.0 <4.0.0'
